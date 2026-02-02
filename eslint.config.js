@@ -10,6 +10,9 @@ module.exports = defineConfig([
   {
     rules: {
       'react/display-name': 'off',
+      'import/no-unresolved': 'off',
+      'import/namespace': 'off',
+      'import/no-duplicates': 'off',
     },
   },
 ]);
