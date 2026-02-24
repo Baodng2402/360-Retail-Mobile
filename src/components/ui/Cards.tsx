@@ -122,10 +122,30 @@ export function CategoryChip({ label, isActive, onPress }: CategoryChipProps) {
     return (
         <TouchableOpacity
             onPress={onPress}
-            className={`px-4 py-2 rounded-full mr-2 ${isActive ? 'bg-teal-500' : 'bg-slate-100'}`}
+            style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                marginRight: 8,
+                backgroundColor: isActive ? '#14B8A6' : '#F1F5F9',
+                overflow: 'visible',
+                minHeight: 36,
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
             activeOpacity={0.7}
         >
-            <Text className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-600'}`}>{label}</Text>
+            <Text
+                style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    lineHeight: 20,
+                    color: isActive ? '#fff' : '#475569',
+                    includeFontPadding: false,
+                }}
+            >
+                {label}
+            </Text>
         </TouchableOpacity>
     );
 }

@@ -1,32 +1,4 @@
-export interface Store {
-  id: string;
-  storeName: string;
-  address?: string;
-  isActive: boolean;
-}
-
-export interface Product {
-  id: string;
-  productName: string;
-  price: number;
-  stockQuantity: number;
-  categoryName?: string;
-}
-
-export interface Order {
-  id: string;
-  code: string;
-  customerName?: string;
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  createdAt: string;
-  itemCount?: number;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-}
+import type { Store, Product, Order, Category } from '@/src/types';
 
 export const stores: Store[] = [
   { id: '1', storeName: 'Cửa hàng ABC - CN1', address: '123 Nguyễn Huệ, Q1', isActive: true },

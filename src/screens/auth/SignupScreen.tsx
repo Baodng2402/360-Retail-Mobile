@@ -1,23 +1,25 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { COLORS } from '../../constants/colors';
+import type { StackScreenProps } from '@react-navigation/stack';
+import { FormInput } from '@/src/components/ui/FormInput';
+import { authApi } from '@/src/api';
+import { COLORS } from '@/src/constants/colors';
+import type { AuthStackParamList } from '@/src/navigation/types';
 
-interface Props {
-    onSignup: () => void;
-    onNavigateToLogin: () => void;
-}
+type Props = StackScreenProps<AuthStackParamList, 'Signup'> & {
+    onLogin: (token: string) => void;
+};
 
-export function SignupScreen({ onSignup, onNavigateToLogin }: Props) {
+export function SignupScreen({ navigation, onLogin }: Props) {
     const insets = useSafeAreaInsets();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleSignup = async () => {
@@ -25,22 +27,35 @@ export function SignupScreen({ onSignup, onNavigateToLogin }: Props) {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin' });
             return;
         }
-
         if (password !== confirmPassword) {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu xác nhận không khớp' });
             return;
         }
-
         if (password.length < 6) {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu phải có ít nhất 6 ký tự' });
             return;
         }
 
         setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Chào mừng bạn đến với 360 Retail!' });
-        onSignup();
-        setLoading(false);
+        try {
+            const res = await authApi.register({ fullName: name, email, password });
+            const resData = res.data;
+            const token =
+                resData?.data?.accessToken ||
+                (resData as any)?.accessToken;
+            if (token) {
+                await onLogin(token);
+                Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Chào mừng bạn đến với 360 Retail!' });
+            } else {
+                Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Vui lòng đăng nhập!' });
+                navigation.goBack();
+            }
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Đăng ký thất bại';
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -52,7 +67,7 @@ export function SignupScreen({ onSignup, onNavigateToLogin }: Props) {
                 style={{ paddingTop: insets.top + 20, paddingBottom: 40, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
             >
                 <View className="px-6 flex-row items-center">
-                    <TouchableOpacity onPress={onNavigateToLogin} className="w-10 h-10 rounded-full bg-white/20 items-center justify-center" activeOpacity={0.7}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 rounded-full bg-white/20 items-center justify-center" activeOpacity={0.7}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View className="flex-1 items-center mr-10">
@@ -64,79 +79,50 @@ export function SignupScreen({ onSignup, onNavigateToLogin }: Props) {
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
                 <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Họ và tên</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="person-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập họ và tên"
-                                placeholderTextColor="#94A3B8"
-                                value={name}
-                                onChangeText={setName}
-                            />
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Họ và tên"
+                        icon="person-outline"
+                        placeholder="Nhập họ và tên"
+                        value={name}
+                        onChangeText={setName}
+                    />
 
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Email</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="mail-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập email của bạn"
-                                placeholderTextColor="#94A3B8"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                value={email}
-                                onChangeText={setEmail}
-                            />
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Email"
+                        icon="mail-outline"
+                        placeholder="Nhập email của bạn"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
 
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Mật khẩu</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="lock-closed-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-                                placeholderTextColor="#94A3B8"
-                                secureTextEntry={!showPassword}
-                                value={password}
-                                onChangeText={setPassword}
-                            />
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
-                                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#94A3B8" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Mật khẩu"
+                        icon="lock-closed-outline"
+                        placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
+                        isPassword
+                        value={password}
+                        onChangeText={setPassword}
+                    />
 
-                    <View className="mb-6">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Xác nhận mật khẩu</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="shield-checkmark-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập lại mật khẩu"
-                                placeholderTextColor="#94A3B8"
-                                secureTextEntry={!showPassword}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                            />
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Xác nhận mật khẩu"
+                        icon="shield-checkmark-outline"
+                        placeholder="Nhập lại mật khẩu"
+                        isPassword
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                    />
 
                     <TouchableOpacity onPress={handleSignup} disabled={loading} activeOpacity={0.8}>
                         <LinearGradient
                             colors={loading ? ['#94A3B8', '#64748B'] : [COLORS.primary, COLORS.primaryDark]}
                             className="h-14 rounded-xl items-center justify-center"
                         >
-                            {loading ? (
-                                <Text className="text-white text-base font-bold">Đang xử lý...</Text>
-                            ) : (
-                                <Text className="text-white text-base font-bold">Đăng ký</Text>
-                            )}
+                            <Text className="text-white text-base font-bold">
+                                {loading ? 'Đang xử lý...' : 'Đăng ký'}
+                            </Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -146,7 +132,7 @@ export function SignupScreen({ onSignup, onNavigateToLogin }: Props) {
 
                     <View className="flex-row justify-center mt-6">
                         <Text className="text-slate-500">Đã có tài khoản? </Text>
-                        <TouchableOpacity onPress={onNavigateToLogin} activeOpacity={0.7}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
                             <Text className="text-teal-500 font-bold">Đăng nhập</Text>
                         </TouchableOpacity>
                     </View>

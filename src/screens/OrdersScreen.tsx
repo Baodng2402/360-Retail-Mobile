@@ -3,10 +3,10 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { TabChip } from '../components/ui';
-import { orders } from '../data/mockData';
-import { formatCurrency, formatRelativeTime, getStatusInfo } from '../utils/format';
-import { COLORS } from '../constants/colors';
+import { TabChip } from '@/src/components/ui';
+import { orders } from '@/src/data/mockData';
+import { formatCurrency, formatRelativeTime, getStatusInfo } from '@/src/utils/format';
+import { COLORS } from '@/src/constants/colors';
 
 export function OrdersScreen() {
     const insets = useSafeAreaInsets();
@@ -39,7 +39,7 @@ export function OrdersScreen() {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                className="bg-white border-b border-slate-100 max-h-14"
+                style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexGrow: 0 }}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10 }}
             >
                 {tabs.map(tab => (

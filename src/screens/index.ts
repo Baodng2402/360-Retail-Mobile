@@ -2,4 +2,6 @@ export { HomeScreen } from './HomeScreen';
 export { ProductsScreen } from './ProductsScreen';
 export { OrdersScreen } from './OrdersScreen';
 export { ProfileScreen } from './ProfileScreen';
-export { LoginScreen, SignupScreen } from './auth';
+export { ChangePasswordScreen } from './ChangePasswordScreen';
+export { LoginScreen } from './auth/LoginScreen';
+export { SignupScreen } from './auth/SignupScreen';
