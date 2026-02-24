@@ -3,10 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { StatCard, QuickAction, OrderCard } from '../components/ui';
-import { stores, products, orders, Store } from '../data/mockData';
-import { formatCurrency, formatRelativeTime, getStatusInfo } from '../utils/format';
-import { COLORS } from '../constants/colors';
+import { StatCard, QuickAction, OrderCard } from '@/src/components/ui';
+import { stores, products, orders } from '@/src/data/mockData';
+import { formatCurrency, formatRelativeTime, getStatusInfo } from '@/src/utils/format';
+import { COLORS } from '@/src/constants/colors';
+import type { Store } from '@/src/types';
 
 interface Props {
     currentStore: Store;

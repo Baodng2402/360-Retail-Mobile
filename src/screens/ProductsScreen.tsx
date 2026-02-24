@@ -4,10 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { ProductCard, CategoryChip } from '../components/ui';
-import { products, categories } from '../data/mockData';
-import { formatCurrency } from '../utils/format';
-import { COLORS } from '../constants/colors';
+import { ProductCard, CategoryChip } from '@/src/components/ui';
+import { products, categories } from '@/src/data/mockData';
+import { formatCurrency } from '@/src/utils/format';
+import { COLORS } from '@/src/constants/colors';
 
 const CARD_GAP = 12;
 
@@ -60,7 +60,7 @@ export function ProductsScreen() {
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                className="bg-white border-b border-slate-100"
+                style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexGrow: 0 }}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, alignItems: 'center' }}
             >
                 {allCategories.map(cat => (

@@ -1,31 +1,54 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import { MenuItem } from '../components/ui';
-import { COLORS } from '../constants/colors';
+import { MenuItem } from '@/src/components/ui';
+import { COLORS } from '@/src/constants/colors';
+import type { ProfileStackParamList } from '@/src/navigation/types';
+
+interface Props {
+    onLogout: () => void;
+}
 
 const MENU_ITEMS = [
     { icon: 'person-outline', label: 'Thông tin cá nhân', color: COLORS.primary, bgClass: 'bg-teal-50' },
     { icon: 'storefront-outline', label: 'Quản lý cửa hàng', color: COLORS.accent, bgClass: 'bg-orange-50' },
     { icon: 'notifications-outline', label: 'Thông báo', color: COLORS.warning, bgClass: 'bg-amber-50' },
-    { icon: 'shield-checkmark-outline', label: 'Bảo mật', color: COLORS.success, bgClass: 'bg-green-50' },
+    { icon: 'shield-checkmark-outline', label: 'Đổi mật khẩu', color: COLORS.success, bgClass: 'bg-green-50', screen: 'ChangePassword' as const },
     { icon: 'help-circle-outline', label: 'Trợ giúp', color: COLORS.blue, bgClass: 'bg-blue-50' },
 ];
 
-export function ProfileScreen() {
+export function ProfileScreen({ onLogout }: Props) {
+    const navigation = useNavigation<StackNavigationProp<ProfileStackParamList>>();
     const insets = useSafeAreaInsets();
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
 
-    const handleMenuPress = (label: string) => {
+    const handleMenuPress = (label: string, screen?: string) => {
+        if (screen) {
+            navigation.navigate(screen as keyof ProfileStackParamList);
+            return;
+        }
         Toast.show({ type: 'info', text1: label, text2: 'Tính năng đang phát triển' });
     };
 
-    const handleLogout = () => {
-        Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
-            { text: 'Hủy', style: 'cancel' },
-            { text: 'Đăng xuất', style: 'destructive', onPress: () => Toast.show({ type: 'success', text1: 'Đã đăng xuất' }) },
-        ]);
+    const handleLogout = async () => {
+        setLoggingOut(true);
+        try {
+            await AsyncStorage.clear();
+            Toast.show({ type: 'success', text1: 'Đăng xuất thành công', text2: 'Hẹn gặp lại bạn!' });
+            setShowLogoutModal(false);
+            onLogout();
+        } catch {
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể đăng xuất, thử lại sau' });
+        } finally {
+            setLoggingOut(false);
+        }
     };
 
     return (
@@ -79,7 +102,7 @@ export function ProfileScreen() {
                             iconColor={item.color}
                             bgColor={item.bgClass}
                             showBorder={index < MENU_ITEMS.length - 1}
-                            onPress={() => handleMenuPress(item.label)}
+                            onPress={() => handleMenuPress(item.label, (item as any).screen)}
                         />
                     ))}
                 </View>
@@ -87,7 +110,7 @@ export function ProfileScreen() {
                 <TouchableOpacity
                     className="bg-white rounded-2xl p-4 mt-4 flex-row items-center shadow-sm"
                     activeOpacity={0.7}
-                    onPress={handleLogout}
+                    onPress={() => setShowLogoutModal(true)}
                 >
                     <View className="w-11 h-11 rounded-xl bg-red-50 items-center justify-center">
                         <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
@@ -97,6 +120,37 @@ export function ProfileScreen() {
 
                 <Text className="text-center text-slate-400 text-sm mt-6">Phiên bản 1.0.0</Text>
             </ScrollView>
+
+            <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
+                <View className="flex-1 bg-black/50 items-center justify-center px-8">
+                    <View className="bg-white rounded-3xl w-full p-6 items-center">
+                        <View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-4">
+                            <Ionicons name="log-out-outline" size={32} color={COLORS.error} />
+                        </View>
+                        <Text className="text-xl font-bold text-slate-800 mb-2">Đăng xuất?</Text>
+                        <Text className="text-sm text-slate-500 text-center mb-6">
+                            Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?
+                        </Text>
+                        <TouchableOpacity
+                            className="w-full h-12 rounded-xl bg-red-500 items-center justify-center mb-3"
+                            activeOpacity={0.8}
+                            onPress={handleLogout}
+                            disabled={loggingOut}
+                        >
+                            <Text className="text-white text-base font-bold">
+                                {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="w-full h-12 rounded-xl bg-slate-100 items-center justify-center"
+                            activeOpacity={0.7}
+                            onPress={() => setShowLogoutModal(false)}
+                        >
+                            <Text className="text-slate-600 text-base font-semibold">Hủy</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

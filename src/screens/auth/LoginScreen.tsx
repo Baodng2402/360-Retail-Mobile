@@ -1,23 +1,23 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import { COLORS } from '../../constants/colors';
+import type { StackScreenProps } from '@react-navigation/stack';
+import { FormInput } from '@/src/components/ui/FormInput';
+import { authApi } from '@/src/api';
+import { COLORS } from '@/src/constants/colors';
+import type { AuthStackParamList } from '@/src/navigation/types';
 
-interface Props {
-    onLogin: () => void;
-    onNavigateToSignup: () => void;
-}
+type Props = StackScreenProps<AuthStackParamList, 'Login'> & {
+    onLogin: (token: string) => void;
+};
 
-const MOCK_USER = { email: 'admin@360retail.vn', password: '123456' };
-
-export function LoginScreen({ onLogin, onNavigateToSignup }: Props) {
+export function LoginScreen({ navigation, onLogin }: Props) {
     const insets = useSafeAreaInsets();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
@@ -27,15 +27,26 @@ export function LoginScreen({ onLogin, onNavigateToSignup }: Props) {
         }
 
         setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        if (email === MOCK_USER.email && password === MOCK_USER.password) {
-            Toast.show({ type: 'success', text1: 'Đăng nhập thành công', text2: 'Chào mừng bạn quay lại!' });
-            onLogin();
-        } else {
-            Toast.show({ type: 'error', text1: 'Đăng nhập thất bại', text2: 'Email hoặc mật khẩu không đúng' });
+        try {
+            const res = await authApi.login({ email, password });
+            const resData = res.data;
+            // Try multiple response structures
+            const token =
+                resData?.data?.accessToken ||
+                (resData as any)?.accessToken;
+            if (token) {
+                await onLogin(token);
+                Toast.show({ type: 'success', text1: 'Đăng nhập thành công', text2: 'Chào mừng bạn quay lại!' });
+            } else {
+                Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không nhận được token từ server' });
+            }
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Đăng nhập thất bại!';
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
+            console.log("Lỗi: ", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
@@ -59,39 +70,24 @@ export function LoginScreen({ onLogin, onNavigateToSignup }: Props) {
                 <ScrollView className="flex-1 px-6 pt-8" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
                     <Text className="text-2xl font-bold text-slate-800 mb-6">Đăng nhập</Text>
 
-                    <View className="mb-4">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Email</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="mail-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập email của bạn"
-                                placeholderTextColor="#94A3B8"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                value={email}
-                                onChangeText={setEmail}
-                            />
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Email"
+                        icon="mail-outline"
+                        placeholder="Nhập email của bạn"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
 
-                    <View className="mb-6">
-                        <Text className="text-sm font-medium text-slate-600 mb-2">Mật khẩu</Text>
-                        <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14">
-                            <Ionicons name="lock-closed-outline" size={22} color="#94A3B8" />
-                            <TextInput
-                                className="flex-1 text-base text-slate-800 ml-3"
-                                placeholder="Nhập mật khẩu"
-                                placeholderTextColor="#94A3B8"
-                                secureTextEntry={!showPassword}
-                                value={password}
-                                onChangeText={setPassword}
-                            />
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.7}>
-                                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#94A3B8" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+                    <FormInput
+                        label="Mật khẩu"
+                        icon="lock-closed-outline"
+                        placeholder="Nhập mật khẩu"
+                        isPassword
+                        value={password}
+                        onChangeText={setPassword}
+                    />
 
                     <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
                         <Text className="text-teal-500 font-semibold">Quên mật khẩu?</Text>
@@ -102,11 +98,9 @@ export function LoginScreen({ onLogin, onNavigateToSignup }: Props) {
                             colors={loading ? ['#94A3B8', '#64748B'] : [COLORS.primary, COLORS.primaryDark]}
                             className="h-14 rounded-xl items-center justify-center"
                         >
-                            {loading ? (
-                                <Text className="text-white text-base font-bold">Đang xử lý...</Text>
-                            ) : (
-                                <Text className="text-white text-base font-bold">Đăng nhập</Text>
-                            )}
+                            <Text className="text-white text-base font-bold">
+                                {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                            </Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -123,15 +117,9 @@ export function LoginScreen({ onLogin, onNavigateToSignup }: Props) {
 
                     <View className="flex-row justify-center mt-4">
                         <Text className="text-slate-500">Chưa có tài khoản? </Text>
-                        <TouchableOpacity onPress={onNavigateToSignup} activeOpacity={0.7}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.7}>
                             <Text className="text-teal-500 font-bold">Đăng ký ngay</Text>
                         </TouchableOpacity>
-                    </View>
-
-                    <View className="mt-8 p-4 bg-teal-50 rounded-xl">
-                        <Text className="text-teal-700 font-semibold mb-2">📌 Tài khoản demo:</Text>
-                        <Text className="text-teal-600">Email: admin@360retail.vn</Text>
-                        <Text className="text-teal-600">Password: 123456</Text>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
