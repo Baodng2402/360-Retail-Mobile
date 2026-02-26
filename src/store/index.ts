@@ -1,24 +1,21 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
 
 import type { AuthSlice } from './slices/authSlice';
 import { createAuthSlice } from './slices/authSlice';
 
 type StoreState = AuthSlice;
 
-const mmkv = new MMKV();
-
-const mmkvStorage = {
-  getItem: (name: string): string | null => {
-    const value = mmkv.getString(name);
-    return value ?? null;
+const asyncStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    return await AsyncStorage.getItem(name);
   },
-  setItem: (name: string, value: string): void => {
-    mmkv.set(name, value);
+  setItem: async (name: string, value: string): Promise<void> => {
+    await AsyncStorage.setItem(name, value);
   },
-  removeItem: (name: string): void => {
-    mmkv.delete(name);
+  removeItem: async (name: string): Promise<void> => {
+    await AsyncStorage.removeItem(name);
   },
 };
 
@@ -30,7 +27,7 @@ export const useAppStore = create<StoreState>()(
       }),
       {
         name: 'app-store',
-        storage: createJSONStorage(() => mmkvStorage),
+        storage: createJSONStorage(() => asyncStorage),
         partialize: (state) => ({
           accessToken: state.accessToken,
           user: state.user,
