@@ -42,7 +42,11 @@ export interface Store {
   id: string;
   storeName: string;
   address?: string;
+  phone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   isActive: boolean;
+  createdAt?: string;
 }
 
 export interface Product {
@@ -107,4 +111,25 @@ export interface BestSeller {
   revenue: number;
   trend: number;
   image?: string;
+}
+
+// ===== OTP =====
+export interface VerifyEmail {
+  email: string;
+  otpCode: string;
+}
+export interface ReSendOTP {
+  message: string;
+  email: string;
+}
+
+// ===== Subscription =====
+export interface SubscriptionStatus {
+  status: string;
+  hasStore: boolean;
+  storeId: string | null;
+  trialStartDate: string | null;
+  trialEndDate: string | null;
+  daysRemaining: number | null;
+  planName: string | null;
 }
