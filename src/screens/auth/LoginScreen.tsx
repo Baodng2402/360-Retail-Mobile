@@ -1,21 +1,20 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { FormInput } from '@/src/components/ui/FormInput';
 import { authApi } from '@/src/api';
+import { useAuthStore } from '@/src/stores';
 import { COLORS } from '@/src/constants/colors';
 import type { AuthStackParamList } from '@/src/navigation/types';
 
-type Props = StackScreenProps<AuthStackParamList, 'Login'> & {
-    onLogin: (token: string) => void;
-};
+type Props = StackScreenProps<AuthStackParamList, 'Login'>;
 
-export function LoginScreen({ navigation, onLogin }: Props) {
+export function LoginScreen({ navigation }: Props) {
     const insets = useSafeAreaInsets();
+    const login = useAuthStore((s) => s.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -25,101 +24,81 @@ export function LoginScreen({ navigation, onLogin }: Props) {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin' });
             return;
         }
-
         setLoading(true);
         try {
             const res = await authApi.login({ email, password });
             const resData = res.data;
-            // Try multiple response structures
-            const token =
-                resData?.data?.accessToken ||
-                (resData as any)?.accessToken;
+            const token = resData?.data?.accessToken || (resData as any)?.accessToken;
+            const userData = resData?.data?.user || (resData as any)?.user;
             if (token) {
-                await onLogin(token);
-                Toast.show({ type: 'success', text1: 'Đăng nhập thành công', text2: 'Chào mừng bạn quay lại!' });
+                await login(token, userData);
+                Toast.show({ type: 'success', text1: 'Chào mừng trở lại!', text2: 'Đăng nhập thành công' });
             } else {
-                Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không nhận được token từ server' });
+                Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không nhận được token từ máy chủ' });
             }
-        } catch (error: any) {
-            const message = error.response?.data?.message || 'Đăng nhập thất bại!';
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
-            console.log("Lỗi: ", error);
+        } catch {
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Đăng nhập thất bại! Kiểm tra lại thông tin' });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <View className="flex-1 bg-white">
-            <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ paddingTop: insets.top + 40, paddingBottom: 60, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
-            >
-                <View className="px-6 items-center">
-                    <View className="w-20 h-20 rounded-2xl bg-white/20 items-center justify-center mb-4">
-                        <Ionicons name="storefront" size={40} color="#fff" />
-                    </View>
-                    <Text className="text-white text-3xl font-bold">360 Retail</Text>
-                    <Text className="text-white/70 text-base mt-2">Quản lý bán hàng thông minh</Text>
-                </View>
-            </LinearGradient>
-
+        <View className="flex-1 bg-surface">
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-                <ScrollView className="flex-1 px-6 pt-8" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                    <Text className="text-2xl font-bold text-slate-800 mb-6">Đăng nhập</Text>
+                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 40 }}>
 
-                    <FormInput
-                        label="Email"
-                        icon="mail-outline"
-                        placeholder="Nhập email của bạn"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                    />
-
-                    <FormInput
-                        label="Mật khẩu"
-                        icon="lock-closed-outline"
-                        placeholder="Nhập mật khẩu"
-                        isPassword
-                        value={password}
-                        onChangeText={setPassword}
-                    />
-
-                    <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
-                        <Text className="text-teal-500 font-semibold">Quên mật khẩu?</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
-                        <LinearGradient
-                            colors={loading ? ['#94A3B8', '#64748B'] : [COLORS.primary, COLORS.primaryDark]}
-                            className="h-14 rounded-xl items-center justify-center"
-                        >
-                            <Text className="text-white text-base font-bold">
-                                {loading ? 'Đang xử lý...' : 'Đăng nhập'}
-                            </Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    <View className="flex-row items-center my-6">
-                        <View className="flex-1 h-px bg-slate-200" />
-                        <Text className="text-slate-400 mx-4">hoặc</Text>
-                        <View className="flex-1 h-px bg-slate-200" />
+                    {/* Logo & Title */}
+                    <View className="items-center pb-10" style={{ paddingTop: insets.top + 60 }}>
+                        <View className="w-[72px] h-[72px] rounded-2xl bg-primary-light items-center justify-center mb-6">
+                            <Ionicons name="storefront" size={36} color={COLORS.primary} />
+                        </View>
+                        <Text className="text-[26px] font-extrabold text-foreground">Chào Mừng Trở Lại</Text>
+                        <Text className="text-sm text-muted mt-1.5">Đăng nhập để tiếp tục sử dụng 360 Store</Text>
                     </View>
 
-                    <TouchableOpacity className="flex-row items-center justify-center h-14 rounded-xl border border-slate-200 mb-4" activeOpacity={0.7}>
-                        <Ionicons name="logo-google" size={22} color="#EA4335" />
-                        <Text className="text-slate-700 font-semibold ml-3">Tiếp tục với Google</Text>
-                    </TouchableOpacity>
+                    {/* Form */}
+                    <View className="px-6">
+                        <FormInput label="Email" icon="mail-outline" placeholder="Nhập địa chỉ email"
+                            keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+                        <FormInput label="Mật khẩu" icon="lock-closed-outline" placeholder="Nhập mật khẩu"
+                            isPassword value={password} onChangeText={setPassword} />
 
-                    <View className="flex-row justify-center mt-4">
-                        <Text className="text-slate-500">Chưa có tài khoản? </Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.7}>
-                            <Text className="text-teal-500 font-bold">Đăng ký ngay</Text>
+                        <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
+                            <Text className="text-sm font-semibold text-primary">Quên mật khẩu?</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
+                            <View className="h-[52px] rounded-2xl items-center justify-center"
+                                style={{ backgroundColor: loading ? COLORS.textMuted : COLORS.primary }}>
+                                <Text className="text-white text-base font-bold">
+                                    {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Divider */}
+                        <View className="flex-row items-center my-6">
+                            <View className="flex-1 h-px bg-border" />
+                            <Text className="text-muted mx-4 text-sm">hoặc</Text>
+                            <View className="flex-1 h-px bg-border" />
+                        </View>
+
+                        {/* Google */}
+                        <TouchableOpacity className="flex-row items-center justify-center h-[52px] rounded-2xl border border-border mb-3"
+                            activeOpacity={0.7}>
+                            <Ionicons name="logo-google" size={20} color="#EA4335" />
+                            <Text className="text-text-secondary font-semibold ml-2.5 text-sm">Đăng nhập với Google</Text>
+                        </TouchableOpacity>
+
+                        {/* Signup Link */}
+                        <View className="flex-row justify-center mt-5">
+                            <Text className="text-muted text-sm">Chưa có tài khoản? </Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.7}>
+                                <Text className="text-primary font-bold text-sm">Đăng Ký</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

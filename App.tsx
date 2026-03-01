@@ -5,24 +5,22 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AuthNavigator, MainNavigator } from '@/src/navigation';
-import { useAuth } from '@/src/hooks/useAuth';
+import { useAuthStore } from '@/src/stores';
 import { COLORS } from '@/src/constants/colors';
 
 function RootNavigator() {
-  const { isAuthenticated, checkAuth, login, logout } = useAuth();
+  const { isAuthenticated, isLoading, hydrate } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    hydrate();
+  }, [hydrate]);
+
+  if (isLoading) return null;
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      {isAuthenticated ? (
-        <MainNavigator onLogout={logout} />
-      ) : (
-        <AuthNavigator onLogin={login} />
-      )}
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.surface} />
+      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
     </>
   );
 }
