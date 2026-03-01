@@ -5,67 +5,56 @@ import { HomeScreen } from '@/src/screens/HomeScreen';
 import { ProductsScreen } from '@/src/screens/ProductsScreen';
 import { OrdersScreen } from '@/src/screens/OrdersScreen';
 import { ProfileNavigator } from './ProfileNavigator';
+import { RentalsNavigator } from './RentalsNavigator';
 import { COLORS } from '@/src/constants/colors';
-import { stores } from '@/src/data/mockData';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-    Home: { active: 'home', inactive: 'home-outline' },
-    Products: { active: 'cube', inactive: 'cube-outline' },
-    Orders: { active: 'receipt', inactive: 'receipt-outline' },
-    ProfileStack: { active: 'person', inactive: 'person-outline' },
+const TAB_CONFIG: Record<string, { active: string; inactive: string; label: string }> = {
+    Home: { active: 'home', inactive: 'home-outline', label: 'Tổng quan' },
+    Rentals: { active: 'pricetag', inactive: 'pricetag-outline', label: 'Bán hàng' },
+    Orders: { active: 'receipt', inactive: 'receipt-outline', label: 'Đơn hàng' },
+    Inventory: { active: 'cube', inactive: 'cube-outline', label: 'Kho hàng' },
+    ProfileStack: { active: 'person', inactive: 'person-outline', label: 'Hồ sơ' },
 };
 
-const TAB_LABELS: Record<string, string> = {
-    Home: 'Trang chủ',
-    Products: 'Sản phẩm',
-    Orders: 'Đơn hàng',
-    ProfileStack: 'Hồ sơ',
-};
-
-interface Props {
-    onLogout: () => void;
-}
-
-export function MainNavigator({ onLogout }: Props) {
-    const currentStore = stores[0];
-
+export function MainNavigator() {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
                 headerShown: false,
-                tabBarIcon: ({ focused, size }) => {
-                    const icons = TAB_ICONS[route.name];
+                tabBarIcon: ({ focused }) => {
+                    const config = TAB_CONFIG[route.name];
                     return (
                         <Ionicons
-                            name={(focused ? icons.active : icons.inactive) as any}
-                            size={size}
-                            color={focused ? COLORS.primary : '#94A3B8'}
+                            name={(focused ? config.active : config.inactive) as any}
+                            size={22}
+                            color={focused ? COLORS.primary : COLORS.textMuted}
                         />
                     );
                 },
-                tabBarLabel: TAB_LABELS[route.name],
+                tabBarLabel: TAB_CONFIG[route.name]?.label,
                 tabBarActiveTintColor: COLORS.primary,
-                tabBarInactiveTintColor: '#94A3B8',
-                tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+                tabBarInactiveTintColor: COLORS.textMuted,
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '600',
+                },
                 tabBarStyle: {
                     paddingTop: 8,
                     paddingBottom: 8,
                     height: 65,
+                    backgroundColor: COLORS.surface,
                     borderTopWidth: 1,
-                    borderTopColor: '#E2E8F0',
+                    borderTopColor: COLORS.divider,
                 },
             })}
         >
-            <Tab.Screen name="Home">
-                {() => <HomeScreen currentStore={currentStore} />}
-            </Tab.Screen>
-            <Tab.Screen name="Products" component={ProductsScreen} />
+            <Tab.Screen name="Home" component={HomeScreen} />
+            <Tab.Screen name="Rentals" component={RentalsNavigator} />
             <Tab.Screen name="Orders" component={OrdersScreen} />
-            <Tab.Screen name="ProfileStack">
-                {() => <ProfileNavigator onLogout={onLogout} />}
-            </Tab.Screen>
+            <Tab.Screen name="Inventory" component={ProductsScreen} />
+            <Tab.Screen name="ProfileStack" component={ProfileNavigator} />
         </Tab.Navigator>
     );
 }

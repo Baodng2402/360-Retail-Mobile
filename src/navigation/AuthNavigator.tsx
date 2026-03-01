@@ -1,23 +1,15 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import type { AuthStackParamList } from './types';
-import { LoginScreen } from '@/src/screens/auth/LoginScreen';
-import { SignupScreen } from '@/src/screens/auth/SignupScreen';
+import { LoginScreen, SignupScreen, OTPScreen } from '@/src/screens/auth';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
-interface Props {
-    onLogin: (token: string) => void;
-}
-
-export function AuthNavigator({ onLogin }: Props) {
+export function AuthNavigator() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login">
-                {(props) => <LoginScreen {...props} onLogin={onLogin} />}
-            </Stack.Screen>
-            <Stack.Screen name="Signup">
-                {(props) => <SignupScreen {...props} onLogin={onLogin} />}
-            </Stack.Screen>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="OTP" component={OTPScreen} />
         </Stack.Navigator>
     );
 }

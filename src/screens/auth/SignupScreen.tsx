@@ -1,53 +1,46 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { FormInput } from '@/src/components/ui/FormInput';
 import { authApi } from '@/src/api';
+import { useAuthStore } from '@/src/stores';
 import { COLORS } from '@/src/constants/colors';
 import type { AuthStackParamList } from '@/src/navigation/types';
 
-type Props = StackScreenProps<AuthStackParamList, 'Signup'> & {
-    onLogin: (token: string) => void;
-};
+type Props = StackScreenProps<AuthStackParamList, 'Signup'>;
 
-export function SignupScreen({ navigation, onLogin }: Props) {
+export function SignupScreen({ navigation }: Props) {
     const insets = useSafeAreaInsets();
+    const login = useAuthStore((s) => s.login);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSignup = async () => {
-        if (!name || !email || !password || !confirmPassword) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin' });
-            return;
-        }
-        if (password !== confirmPassword) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu xác nhận không khớp' });
+        if (!name || !email || !password) {
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin bắt buộc' });
             return;
         }
         if (password.length < 6) {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu phải có ít nhất 6 ký tự' });
             return;
         }
-
         setLoading(true);
         try {
             const res = await authApi.register({ fullName: name, email, password });
             const resData = res.data;
-            const token =
-                resData?.data?.accessToken ||
-                (resData as any)?.accessToken;
+            const token = resData?.data?.accessToken || (resData as any)?.accessToken;
+            const userData = resData?.data?.user || (resData as any)?.user;
             if (token) {
-                await onLogin(token);
-                Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Chào mừng bạn đến với 360 Retail!' });
+                await login(token, userData);
+                Toast.show({ type: 'success', text1: 'Chào mừng!', text2: 'Tạo tài khoản thành công' });
             } else {
-                Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Vui lòng đăng nhập!' });
+                Toast.show({ type: 'success', text1: 'Đã tạo tài khoản', text2: 'Vui lòng đăng nhập!' });
                 navigation.goBack();
             }
         } catch (error: any) {
@@ -59,82 +52,48 @@ export function SignupScreen({ navigation, onLogin }: Props) {
     };
 
     return (
-        <View className="flex-1 bg-white">
-            <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ paddingTop: insets.top + 20, paddingBottom: 40, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
-            >
-                <View className="px-6 flex-row items-center">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 rounded-full bg-white/20 items-center justify-center" activeOpacity={0.7}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <View className="flex-1 items-center mr-10">
-                        <Text className="text-white text-2xl font-bold">Tạo tài khoản</Text>
-                        <Text className="text-white/70 text-sm mt-1">Bắt đầu hành trình kinh doanh</Text>
-                    </View>
-                </View>
-            </LinearGradient>
-
+        <View className="flex-1 bg-surface">
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-                <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                    <FormInput
-                        label="Họ và tên"
-                        icon="person-outline"
-                        placeholder="Nhập họ và tên"
-                        value={name}
-                        onChangeText={setName}
-                    />
+                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 40 }}>
 
-                    <FormInput
-                        label="Email"
-                        icon="mail-outline"
-                        placeholder="Nhập email của bạn"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                    />
-
-                    <FormInput
-                        label="Mật khẩu"
-                        icon="lock-closed-outline"
-                        placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-                        isPassword
-                        value={password}
-                        onChangeText={setPassword}
-                    />
-
-                    <FormInput
-                        label="Xác nhận mật khẩu"
-                        icon="shield-checkmark-outline"
-                        placeholder="Nhập lại mật khẩu"
-                        isPassword
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                    />
-
-                    <TouchableOpacity onPress={handleSignup} disabled={loading} activeOpacity={0.8}>
-                        <LinearGradient
-                            colors={loading ? ['#94A3B8', '#64748B'] : [COLORS.primary, COLORS.primaryDark]}
-                            className="h-14 rounded-xl items-center justify-center"
-                        >
-                            <Text className="text-white text-base font-bold">
-                                {loading ? 'Đang xử lý...' : 'Đăng ký'}
-                            </Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    <Text className="text-center text-slate-400 text-xs mt-4 px-4">
-                        Bằng việc đăng ký, bạn đồng ý với Điều khoản sử dụng và Chính sách bảo mật của chúng tôi
-                    </Text>
-
-                    <View className="flex-row justify-center mt-6">
-                        <Text className="text-slate-500">Đã có tài khoản? </Text>
-                        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
-                            <Text className="text-teal-500 font-bold">Đăng nhập</Text>
+                    {/* Back Button */}
+                    <View className="px-6 pb-2" style={{ paddingTop: insets.top + 16 }}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}
+                            className="w-10 h-10 rounded-xl bg-bg items-center justify-center" activeOpacity={0.7}>
+                            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
                         </TouchableOpacity>
+                    </View>
+
+                    {/* Icon & Title */}
+                    <View className="items-center py-6">
+                        <View className="w-16 h-16 rounded-2xl bg-primary-light items-center justify-center mb-5">
+                            <Ionicons name="person-add-outline" size={30} color={COLORS.primary} />
+                        </View>
+                        <Text className="text-2xl font-extrabold text-foreground">Tạo Tài Khoản</Text>
+                        <Text className="text-sm text-muted mt-1.5">Đăng ký để bắt đầu sử dụng 360 Store</Text>
+                    </View>
+
+                    {/* Form */}
+                    <View className="px-6">
+                        <FormInput label="Họ và tên" icon="person-outline" placeholder="Nhập họ và tên" value={name} onChangeText={setName} />
+                        <FormInput label="Email" icon="mail-outline" placeholder="Nhập địa chỉ email" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+                        <FormInput label="Số điện thoại" icon="call-outline" placeholder="Nhập số điện thoại" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+                        <FormInput label="Mật khẩu" icon="lock-closed-outline" placeholder="Nhập mật khẩu" isPassword value={password} onChangeText={setPassword} />
+
+                        <TouchableOpacity onPress={handleSignup} disabled={loading} activeOpacity={0.8} className="mt-2">
+                            <View className="h-[52px] rounded-2xl items-center justify-center"
+                                style={{ backgroundColor: loading ? COLORS.textMuted : COLORS.accent }}>
+                                <Text className="text-white text-base font-bold">{loading ? 'Đang xử lý...' : 'Tạo Tài Khoản'}</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <View className="flex-row justify-center mt-6">
+                            <Text className="text-muted text-sm">Đã có tài khoản? </Text>
+                            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
+                                <Text className="text-primary font-bold text-sm">Đăng Nhập</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

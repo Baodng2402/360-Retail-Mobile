@@ -34,6 +34,7 @@ export interface UserProfile {
   email: string;
   fullName: string;
   avatar?: string;
+  role?: string;
 }
 
 // ===== Business =====
@@ -50,14 +51,18 @@ export interface Product {
   price: number;
   stockQuantity: number;
   categoryName?: string;
+  sku?: string;
+  image?: string;
+  status?: 'in_stock' | 'low_stock' | 'out_of_stock';
 }
 
 export interface Order {
   id: string;
   code: string;
   customerName?: string;
+  customerAvatar?: string;
   totalAmount: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipping' | 'completed' | 'cancelled';
   createdAt: string;
   itemCount?: number;
 }
@@ -65,4 +70,41 @@ export interface Order {
 export interface Category {
   id: string;
   name: string;
+  icon?: string;
+}
+
+// ===== POS / Sales =====
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+}
+
+// ===== Activity =====
+export interface ActivityItem {
+  id: string;
+  type: 'order_shipped' | 'payment_received' | 'new_order' | 'stock_alert';
+  title: string;
+  subtitle: string;
+  time: string;
+  icon: string;
+  iconColor: string;
+}
+
+// ===== Reports =====
+export interface BestSeller {
+  id: string;
+  name: string;
+  category: string;
+  salesCount: number;
+  revenue: number;
+  trend: number;
+  image?: string;
 }

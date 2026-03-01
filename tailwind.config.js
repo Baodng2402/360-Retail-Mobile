@@ -1,64 +1,54 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Important: include App.tsx in root!
   content: ['./App.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
+        // Primary — Teal
         primary: {
-          DEFAULT: '#19D6C8',
-          foreground: '#FFFFFF',
-          50: '#E6FAF8',
-          100: '#B3F0EB',
-          200: '#80E6DE',
-          300: '#4DDCD1',
-          400: '#26D4C7',
-          500: '#19D6C8',
-          600: '#14ADA3',
-          700: '#0F847D',
-          800: '#0A5B56',
-          900: '#053230',
+          DEFAULT: '#26C6DA',
+          dark: '#00ACC1',
+          light: '#E0F7FA',
+          50: '#E0F7FA',
+          100: '#B2EBF2',
+          200: '#80DEEA',
+          300: '#4DD0E1',
+          400: '#26C6DA',
+          500: '#00BCD4',
+          600: '#00ACC1',
+          700: '#0097A7',
+          800: '#00838F',
+          900: '#006064',
         },
-        secondary: {
-          DEFAULT: '#FF7B21',
-          foreground: '#FFFFFF',
-          50: '#FFF3EB',
-          100: '#FFE0CC',
-          200: '#FFCDAD',
-          300: '#FFBA8E',
-          400: '#FFA76F',
-          500: '#FF7B21',
-          600: '#E66B1A',
-          700: '#CC5B13',
-          800: '#B34B0C',
-          900: '#993B05',
+        // Accent — Orange CTA
+        accent: {
+          DEFAULT: '#FF7043',
+          dark: '#E64A19',
+          light: '#FBE9E7',
         },
-        background: '#FFFFFF',
-        foreground: '#1A1A1A',
-        muted: {
-          DEFAULT: '#F4F4F5',
-          foreground: '#71717A',
-        },
-        card: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#1A1A1A',
-        },
-        border: '#E4E4E7',
-        input: '#E4E4E7',
-        ring: '#19D6C8',
-        destructive: {
-          DEFAULT: '#EF4444',
-          foreground: '#FFFFFF',
-        },
-        success: {
-          DEFAULT: '#22C55E',
-          foreground: '#FFFFFF',
-        },
-        warning: {
-          DEFAULT: '#F59E0B',
-          foreground: '#FFFFFF',
-        },
+        // Semantic
+        success: { DEFAULT: '#4CAF50', light: '#E8F5E9' },
+        warning: { DEFAULT: '#FFA726', light: '#FFF3E0' },
+        error: { DEFAULT: '#EF5350', light: '#FFEBEE' },
+        info: { DEFAULT: '#42A5F5', light: '#E3F2FD' },
+        // Surface & Background
+        surface: '#FFFFFF',
+        bg: '#F8FAFC',
+        card: '#FFFFFF',
+        overlay: 'rgba(0,0,0,0.5)',
+        // Text
+        foreground: '#1E293B',
+        'text-secondary': '#475569',
+        muted: { DEFAULT: '#94A3B8', foreground: '#94A3B8' },
+        'text-light': '#CBD5E1',
+        // Borders
+        border: '#E2E8F0',
+        divider: '#F1F5F9',
+      },
+      borderRadius: {
+        '2xl': '16px',
+        '3xl': '20px',
       },
     },
   },
