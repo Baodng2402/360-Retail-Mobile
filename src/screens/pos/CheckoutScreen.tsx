@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 import { COLORS } from '@/src/constants/colors';
 import { formatCurrency } from '@/src/utils/format';
 import type { CartItem } from '@/src/types';
+import { PrimaryButton, ScreenHeader } from '@/src/components';
 
 const MOCK_CART: CartItem[] = [
     { product: { id: '1', productName: 'iPhone 15 Pro Max', price: 34_990_000, stockQuantity: 12, sku: 'IPH-001' }, quantity: 1 },
@@ -22,25 +23,28 @@ export function CheckoutScreen() {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
     const [loading, setLoading] = useState(false);
 
-    const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-    const tax = subtotal * 0.08;
+    const subtotal = useMemo(
+        () => cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+        [cart]
+    );
+    const tax = useMemo(() => subtotal * 0.08, [subtotal]);
     const discount = 0;
-    const total = subtotal + tax - discount;
+    const total = useMemo(() => subtotal + tax - discount, [subtotal, tax]);
 
-    const updateQuantity = (id: string, delta: number) => {
+    const updateQuantity = useCallback((id: string, delta: number) => {
         setCart((prev) => prev
             .map((item) => item.product.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item)
             .filter((item) => item.quantity > 0));
-    };
+    }, []);
 
-    const handleComplete = () => {
+    const handleComplete = useCallback(() => {
         setLoading(true);
         setTimeout(() => {
             setLoading(false);
             Toast.show({ type: 'success', text1: 'Đặt hàng thành công!', text2: `Tổng: ${formatCurrency(total)}` });
             navigation.goBack();
         }, 1500);
-    };
+    }, [navigation, total]);
 
     const paymentMethods: { key: PaymentMethod; label: string; icon: string }[] = [
         { key: 'card', label: 'Thẻ', icon: 'card-outline' },
@@ -50,15 +54,18 @@ export function CheckoutScreen() {
 
     return (
         <View className="flex-1 bg-bg">
-            {/* Header */}
-            <View className="bg-surface border-b border-divider px-5 pb-4 flex-row items-center"
-                style={{ paddingTop: insets.top + 12 }}>
-                <TouchableOpacity onPress={() => navigation.goBack()}
-                    className="w-10 h-10 rounded-xl bg-bg items-center justify-center" activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-                </TouchableOpacity>
-                <Text className="text-xl font-extrabold text-foreground ml-3">Thanh Toán</Text>
-            </View>
+            <ScreenHeader
+                title="Thanh toán"
+                topInset={insets.top}
+                rightSlot={<View className="h-10 w-10" />}
+            >
+                <View className="absolute left-4 top-0" style={{ marginTop: insets.top + 12 }}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}
+                        className="w-10 h-10 rounded-xl bg-bg items-center justify-center" activeOpacity={0.7}>
+                        <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+                    </TouchableOpacity>
+                </View>
+            </ScreenHeader>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
@@ -159,14 +166,13 @@ export function CheckoutScreen() {
             {/* CTA */}
             <View className="absolute bottom-0 left-0 right-0 bg-surface border-t border-divider p-4"
                 style={{ paddingBottom: insets.bottom + 16 }}>
-                <TouchableOpacity onPress={handleComplete} disabled={loading} activeOpacity={0.8}>
-                    <View className="h-[52px] rounded-2xl items-center justify-center"
-                        style={{ backgroundColor: loading ? COLORS.textMuted : COLORS.accent }}>
-                        <Text className="text-white text-base font-bold">
-                            {loading ? 'Đang xử lý...' : `Hoàn tất đơn hàng • ${formatCurrency(total)}`}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                <PrimaryButton
+                    onPress={handleComplete}
+                    loading={loading}
+                    label={`Hoàn tất đơn hàng • ${formatCurrency(total)}`}
+                    loadingLabel="Đang xử lý..."
+                    className="h-[52px] items-center justify-center rounded-2xl"
+                />
             </View>
         </View>
     );

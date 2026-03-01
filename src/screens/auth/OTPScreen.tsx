@@ -1,175 +1,171 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import type { StackScreenProps } from '@react-navigation/stack';
+import { PrimaryButton } from '@/src/components';
 import { COLORS } from '@/src/constants/colors';
 import type { AuthStackParamList } from '@/src/navigation/types';
+import { authApi } from '@/src/api';
 
 type Props = StackScreenProps<AuthStackParamList, 'OTP'>;
 
-export function OTPScreen({ navigation }: Props) {
-    const insets = useSafeAreaInsets();
-    const [otp, setOtp] = useState(['', '', '', '']);
-    const [countdown, setCountdown] = useState(45);
-    const [loading, setLoading] = useState(false);
-    const inputRefs = useRef<(TextInput | null)[]>([]);
+const OTP_LENGTH = 6;
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
+export function OTPScreen({ navigation, route }: Props) {
+  const { email } = route.params;
+  const insets = useSafeAreaInsets();
 
-    const handleOtpChange = (value: string, index: number) => {
-        const newOtp = [...otp];
-        newOtp[index] = value;
-        setOtp(newOtp);
-        if (value && index < 3) inputRefs.current[index + 1]?.focus();
-    };
+  const [otp, setOtp] = useState<string[]>(Array.from({ length: OTP_LENGTH }, () => ''));
+  const [countdown, setCountdown] = useState(45);
+  const [loading, setLoading] = useState(false);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const code = useMemo(() => otp.join(''), [otp]);
 
-    const handleKeyPress = (e: any, index: number) => {
-        if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-            inputRefs.current[index - 1]?.focus();
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
         }
-    };
+        return prev - 1;
+      });
+    }, 1000);
 
-    const handleVerify = () => {
-        const code = otp.join('');
-        if (code.length < 4) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ mã xác thực' });
-            return;
-        }
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            Toast.show({ type: 'success', text1: 'Đã xác thực!', text2: 'Tài khoản đã được xác minh' });
-            navigation.navigate('Login');
-        }, 1500);
-    };
+    return () => clearInterval(timer);
+  }, []);
 
-    const handleResend = () => {
-        if (countdown > 0) return;
-        setCountdown(45);
-        Toast.show({ type: 'info', text1: 'Đã gửi mã', text2: 'Mã xác thực mới đã được gửi' });
-    };
+  const handleOtpChange = (value: string, index: number) => {
+    const normalized = value.replace(/\D/g, '').slice(0, 1);
+    const nextOtp = [...otp];
+    nextOtp[index] = normalized;
+    setOtp(nextOtp);
 
-    const formatTime = (s: number) =>
-        `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    if (normalized && index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
 
-    return (
-        <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 24 }}>
-                <TouchableOpacity
-                    onPress={() => navigation.goBack()}
-                    style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        backgroundColor: COLORS.bg,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-                </TouchableOpacity>
-            </View>
+  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
 
-            <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 40 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8 }}>
-                    Xác Thực
-                </Text>
-                <View
-                    style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 20,
-                        backgroundColor: COLORS.primaryLight,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 28,
-                    }}
-                >
-                    <Ionicons name="shield-checkmark-outline" size={36} color={COLORS.primary} />
-                </View>
-                <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.text }}>Nhập Mã Xác Thực</Text>
-                <Text
-                    style={{
-                        fontSize: 14,
-                        color: COLORS.textMuted,
-                        textAlign: 'center',
-                        marginTop: 8,
-                        lineHeight: 20,
-                    }}
-                >
-                    Chúng tôi đã gửi mã xác thực đến số điện thoại{'\n'}của bạn. Vui lòng nhập mã bên dưới.
-                </Text>
+  const handleVerify = async () => {
+    if (code.length < OTP_LENGTH) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: `Vui lòng nhập đủ mã ${OTP_LENGTH} số` });
+      return;
+    }
 
-                {/* OTP Inputs */}
-                <View style={{ flexDirection: 'row', marginTop: 32, gap: 12 }}>
-                    {otp.map((digit, index) => (
-                        <TextInput
-                            key={index}
-                            ref={(ref) => { inputRefs.current[index] = ref; }}
-                            style={{
-                                width: 56,
-                                height: 56,
-                                borderRadius: 14,
-                                borderWidth: 2,
-                                borderColor: digit ? COLORS.primary : COLORS.border,
-                                backgroundColor: digit ? COLORS.primaryLight : COLORS.bg,
-                                textAlign: 'center',
-                                fontSize: 22,
-                                fontWeight: '700',
-                                color: COLORS.text,
-                            }}
-                            maxLength={1}
-                            keyboardType="number-pad"
-                            value={digit}
-                            onChangeText={(v) => handleOtpChange(v, index)}
-                            onKeyPress={(e) => handleKeyPress(e, index)}
-                        />
-                    ))}
-                </View>
+    setLoading(true);
+    try {
+      const res = await authApi.verifyEmail(email, code);
+      Toast.show({
+        type: 'success',
+        text1: 'Đã xác thực!',
+        text2: res.data?.message ?? 'Tài khoản đã được xác minh thành công',
+      });
+      navigation.navigate('Login');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Xác thực thất bại';
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                <TouchableOpacity
-                    onPress={handleResend}
-                    disabled={countdown > 0}
-                    style={{ marginTop: 24 }}
-                    activeOpacity={0.7}
-                >
-                    <Text style={{ fontSize: 14, color: COLORS.textMuted }}>
-                        Gửi lại mã sau{' '}
-                        <Text style={{ color: countdown > 0 ? COLORS.primary : COLORS.accent, fontWeight: '700' }}>
-                            {formatTime(countdown)}
-                        </Text>
-                    </Text>
-                </TouchableOpacity>
+  const handleResend = async () => {
+    if (countdown > 0) return;
 
-                <TouchableOpacity
-                    onPress={handleVerify}
-                    disabled={loading}
-                    activeOpacity={0.8}
-                    style={{ width: '100%', marginTop: 40 }}
-                >
-                    <View
-                        style={{
-                            height: 52,
-                            borderRadius: 14,
-                            backgroundColor: loading ? COLORS.textMuted : COLORS.primary,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
-                            {loading ? 'Đang xác thực...' : 'Xác Thực'}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
+    try {
+      setCountdown(45);
+      const res = await authApi.resendOTP(email);
+      Toast.show({
+        type: 'info',
+        text1: 'Đã gửi mã',
+        text2: res.data?.message ?? 'Mã xác thực mới đã được gửi',
+      });
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Gửi lại mã thất bại';
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
+      setCountdown(0);
+    }
+  };
+
+  const formatTime = (seconds: number) =>
+    `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+
+  return (
+    <View className="flex-1 bg-bg">
+      <View
+        className="flex-row items-center justify-between px-4 pb-2"
+        style={{ paddingTop: insets.top + 12 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="size-10 items-center justify-center rounded-full"
+          activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text className="pr-10 text-lg font-bold text-foreground">Xác thực</Text>
+      </View>
+
+      <View className="flex-1 items-center px-6 pt-10">
+        <View
+          className="mb-6 size-16 items-center justify-center rounded-full"
+          style={{ backgroundColor: 'rgba(38,198,218,0.12)' }}>
+          <Ionicons name="lock-closed-outline" size={30} color={COLORS.primary} />
         </View>
-    );
+
+        <Text className="text-center text-[32px] font-extrabold text-foreground">
+          Nhập mã xác thực
+        </Text>
+        <Text className="mt-3 text-center text-base leading-6 text-muted">
+          Chúng tôi đã gửi mã xác thực đến{`\n`}
+          <Text className="font-semibold text-foreground">{email}</Text>
+        </Text>
+
+        <View className="mb-6 mt-10 flex-row gap-4">
+          {otp.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
+              className="h-16 w-14 border-b-2 text-center text-2xl font-bold text-foreground"
+              style={{ borderBottomColor: digit ? COLORS.primary : COLORS.border }}
+              maxLength={1}
+              keyboardType="number-pad"
+              value={digit}
+              onChangeText={(value) => handleOtpChange(value, index)}
+              onKeyPress={(event) => handleKeyPress(event, index)}
+            />
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={handleResend}
+          disabled={countdown > 0}
+          style={{ opacity: countdown > 0 ? 1 : 0.9 }}
+          activeOpacity={0.8}>
+          <Text className="text-sm text-muted">
+            Gửi lại mã sau <Text className="font-bold text-primary">{formatTime(countdown)}</Text>
+          </Text>
+        </TouchableOpacity>
+
+        <View className="mt-auto w-full pb-8">
+          <PrimaryButton
+            onPress={handleVerify}
+            disabled={loading}
+            loading={loading}
+            label="Xác thực"
+            loadingLabel="Đang xác thực..."
+            className="h-14 w-full items-center justify-center rounded-xl"
+          />
+        </View>
+      </View>
+    </View>
+  );
 }

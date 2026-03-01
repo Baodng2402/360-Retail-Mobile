@@ -1,143 +1,98 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Button } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { StatCard, MiniBarChart, BestSellerCard } from '@/src/components/ui';
+import { HorizontalChips, ScreenHeader } from '@/src/components';
 import { bestSellers, dashboardStats } from '@/src/data/mockData';
 import { formatCompact } from '@/src/utils/format';
 import { COLORS } from '@/src/constants/colors';
-import { useNavigation } from '@react-navigation/native';
+
+const FILTERS = ['Hôm nay', 'Tuần này', 'Tháng này', 'Từ đầu năm'];
 
 export function SalesReportScreen() {
-    const navigation = useNavigation();
-    const insets = useSafeAreaInsets();
-    const [activeFilter, setActiveFilter] = useState('Tháng này');
-    const filters = ['Hôm nay', 'Tuần này', 'Tháng này', 'Năm nay'];
-    const weekLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const [activeFilter, setActiveFilter] = useState('Hôm nay');
+  const weekLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const filterItems = FILTERS.map((filter) => ({ key: filter, label: filter }));
 
-    return (
-        <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
-            <View
-                style={{
-                    backgroundColor: COLORS.surface,
-                    paddingTop: insets.top + 12,
-                    paddingHorizontal: 20,
-                    paddingBottom: 16,
-                    borderBottomWidth: 1,
-                    borderBottomColor: COLORS.divider,
-                }}
-            >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-                    </TouchableOpacity>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Ionicons name="stats-chart" size={22} color={COLORS.primary} />
-                        <Text style={{ fontSize: 20, fontWeight: '800', color: COLORS.text, marginLeft: 8 }}>
-                            Báo Cáo Doanh Thu
-                        </Text>
-                    </View>
-                    <TouchableOpacity
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            backgroundColor: COLORS.primaryLight,
-                            paddingHorizontal: 10,
-                            paddingVertical: 6,
-                            borderRadius: 8,
-                        }}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.primary, marginLeft: 4 }}>
-                            Th10 2023
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            <ScrollView
-                style={{ flex: 1 }}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-            >
-                {/* Time Filter Pills */}
-                <View style={{ flexDirection: 'row', marginBottom: 16, gap: 8 }}>
-                    {filters.map((f) => (
-                        <TouchableOpacity
-                            key={f}
-                            onPress={() => setActiveFilter(f)}
-                            style={{
-                                paddingHorizontal: 14,
-                                paddingVertical: 8,
-                                borderRadius: 10,
-                                backgroundColor: activeFilter === f ? COLORS.primary : COLORS.surface,
-                                borderWidth: activeFilter === f ? 0 : 1,
-                                borderColor: COLORS.border,
-                            }}
-                            activeOpacity={0.7}
-                        >
-                            <Text
-                                style={{
-                                    fontSize: 12,
-                                    fontWeight: '600',
-                                    color: activeFilter === f ? '#fff' : COLORS.textMuted,
-                                }}
-                            >
-                                {f}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* Stats */}
-                <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-                    <StatCard
-                        label="Tổng doanh thu"
-                        value={formatCompact(dashboardStats.totalSales)}
-                        trend={dashboardStats.totalSalesTrend}
-                        icon="trending-up"
-                        iconColor={COLORS.success}
-                    />
-                    <StatCard
-                        label="Giá trị kho"
-                        value={formatCompact(dashboardStats.inventoryValue)}
-                        trend={dashboardStats.inventoryTrend}
-                        icon="cube-outline"
-                        iconColor={COLORS.primary}
-                    />
-                </View>
-
-                {/* Revenue Chart */}
-                <MiniBarChart
-                    title="Phân tích doanh thu"
-                    subtitle="So sánh với tuần trước"
-                    data={dashboardStats.weeklyRevenue}
-                    labels={weekLabels}
-                    height={140}
-                    barColor={COLORS.primary}
-                />
-
-                {/* Best Sellers */}
-                <View style={{ marginTop: 16 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>Bán chạy nhất</Text>
-                        <TouchableOpacity activeOpacity={0.7}>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.primary }}>Xem tất cả</Text>
-                        </TouchableOpacity>
-                    </View>
-                    {bestSellers.map((item, idx) => (
-                        <BestSellerCard
-                            key={item.id}
-                            rank={idx + 1}
-                            name={item.name}
-                            category={item.category}
-                            revenue={item.revenue}
-                            trend={item.trend}
-                        />
-                    ))}
-                </View>
-            </ScrollView>
+  return (
+    <View className="flex-1 bg-bg">
+      <ScreenHeader
+        title="Báo cáo doanh thu"
+        topInset={insets.top}
+        rightSlot={
+          <TouchableOpacity
+            className="flex-row items-center rounded-lg bg-primary/10 px-3 py-1.5"
+            activeOpacity={0.8}>
+            <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
+            <Text className="ml-1 text-xs font-semibold text-primary">Tháng 10/2023</Text>
+          </TouchableOpacity>
+        }>
+        <View className="absolute left-4 top-0" style={{ marginTop: insets.top + 10 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="mr-2 h-10 w-10 items-center justify-center rounded-full"
+            activeOpacity={0.8}>
+            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          </TouchableOpacity>
         </View>
-    );
+      </ScreenHeader>
+
+      <HorizontalChips items={filterItems} activeKey={activeFilter} onPress={setActiveFilter} />
+
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        <View className="mb-2 flex-row">
+          <StatCard
+            label="Tổng doanh thu"
+            value={formatCompact(dashboardStats.totalSales)}
+            trend={dashboardStats.totalSalesTrend}
+            icon="trending-up"
+            iconColor={COLORS.success}
+          />
+          <StatCard
+            label="Giá trị kho"
+            value={formatCompact(dashboardStats.inventoryValue)}
+            trend={dashboardStats.inventoryTrend}
+            icon="cube-outline"
+            iconColor={COLORS.accent}
+          />
+        </View>
+
+        <MiniBarChart
+          title="Phân tích doanh thu"
+          subtitle="So sánh với kỳ trước"
+          data={dashboardStats.weeklyRevenue}
+          labels={weekLabels}
+          height={150}
+          barColor={COLORS.primary}
+        />
+
+        <View className="mt-5">
+          <View className="mb-3 flex-row items-center justify-between">
+            <Text className="text-lg font-bold text-foreground">Sản phẩm bán chạy</Text>
+            <TouchableOpacity activeOpacity={0.8}>
+              <Text className="text-sm font-semibold text-primary">Xem tất cả</Text>
+            </TouchableOpacity>
+          </View>
+
+          {bestSellers.map((item, idx) => (
+            <BestSellerCard
+              key={item.id}
+              rank={idx + 1}
+              name={item.name}
+              category={item.category}
+              revenue={item.revenue}
+              trend={item.trend}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
+import { useSubscriptionStore } from './useSubscriptionStore';
 import type { UserProfile } from '@/src/types';
 // =============================================
 // Auth Store — Zustand
@@ -31,13 +32,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const decoded: any = jwtDecode(token);
 
+      // .NET WS-Security claim URIs — backend dùng key dài trong JWT
+      const CLAIM = {
+        ROLE: 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+      };
+
       // Nếu user backend trả về thiếu thông tin, ta điền từ token claims
       finalUser = {
         ...user,
-        id: user?.id || decoded.sub || decoded.nameid || decoded.id,
+        id: user?.id || decoded.id,
         email: user?.email || decoded.email,
-        fullName: user?.fullName || decoded.fullName || decoded.name || 'Người Dùng',
-        role: user?.role || decoded.role,
+        fullName: user?.fullName || decoded.fullName || 'Người Dùng',
+        role: user?.role || decoded[CLAIM.ROLE],
       } as UserProfile;
     } catch (e) {
       console.warn('Lỗi decode token:', e);
@@ -48,9 +54,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token, user: finalUser, isAuthenticated: true });
   },
 
-  // Đăng xuất — xóa hết
+  // Đăng xuất — xóa hết (auth + subscription + stores)
   logout: async () => {
     await AsyncStorage.multiRemove(['accessToken', 'user']);
+    useSubscriptionStore.getState().clear();
     set({ token: null, user: null, isAuthenticated: false });
   },
 

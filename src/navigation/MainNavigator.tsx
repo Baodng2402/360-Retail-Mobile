@@ -10,7 +10,7 @@ import { COLORS } from '@/src/constants/colors';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TAB_CONFIG: Record<string, { active: string; inactive: string; label: string }> = {
+const TAB_CONFIG: Record<keyof MainTabParamList, { active: string; inactive: string; label: string }> = {
     Home: { active: 'home', inactive: 'home-outline', label: 'Tổng quan' },
     Rentals: { active: 'pricetag', inactive: 'pricetag-outline', label: 'Bán hàng' },
     Orders: { active: 'receipt', inactive: 'receipt-outline', label: 'Đơn hàng' },
@@ -23,27 +23,33 @@ export function MainNavigator() {
         <Tab.Navigator
             screenOptions={({ route }) => ({
                 headerShown: false,
+                lazy: true,
+                freezeOnBlur: true,
+                tabBarHideOnKeyboard: true,
                 tabBarIcon: ({ focused }) => {
                     const config = TAB_CONFIG[route.name];
                     return (
                         <Ionicons
                             name={(focused ? config.active : config.inactive) as any}
-                            size={22}
+                            size={20}
                             color={focused ? COLORS.primary : COLORS.textMuted}
                         />
                     );
                 },
-                tabBarLabel: TAB_CONFIG[route.name]?.label,
+                tabBarLabel: TAB_CONFIG[route.name].label,
                 tabBarActiveTintColor: COLORS.primary,
                 tabBarInactiveTintColor: COLORS.textMuted,
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: '600',
                 },
+                tabBarItemStyle: {
+                    paddingTop: 2,
+                },
                 tabBarStyle: {
-                    paddingTop: 8,
+                    paddingTop: 6,
                     paddingBottom: 8,
-                    height: 65,
+                    height: 64,
                     backgroundColor: COLORS.surface,
                     borderTopWidth: 1,
                     borderTopColor: COLORS.divider,
