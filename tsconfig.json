@@ -1,10 +1,11 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "./node_modules/expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["nativewind/types", "expo-router/types"]
   }
 }
