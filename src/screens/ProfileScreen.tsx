@@ -76,7 +76,7 @@ export function ProfileScreen() {
           </View>
 
           <Text className="text-xl font-bold text-foreground">
-            {user?.fullName || 'Nguyễn Văn A'}
+            {user?.full_name || 'Nguyễn Văn A'}
           </Text>
           <Text className="mt-1 text-sm text-muted">{user?.email || 'Quản lý cửa hàng'}</Text>
           <View className="mt-2 rounded-full bg-primary/10 px-3 py-1">

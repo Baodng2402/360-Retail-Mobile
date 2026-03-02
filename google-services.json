@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "849161368020",
+    "project_id": "retail-360-oauth",
+    "storage_bucket": "retail-360-oauth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:849161368020:android:00ef1d701342f107cbe641",
+        "android_client_info": {
+          "package_name": "com.retail360.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "849161368020-cjgbph9t8cm8pmo6abqbiuuk8cihnchv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.retail360.mobile",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "849161368020-di94cvh6nvfoni2742sqit11j425ces2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.retail360.mobile",
+            "certificate_hash": "5b90ee0accd887898d58ec4b493389219aaf78b1"
+          }
+        },
+        {
+          "client_id": "849161368020-r9oqj5qkc78pbmtbn025embhj5crns1a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvgFlcM4w4Fn0hZI7aYgTt8ZyXV68npyQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "849161368020-r9oqj5qkc78pbmtbn025embhj5crns1a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

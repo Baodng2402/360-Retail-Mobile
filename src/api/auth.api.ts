@@ -3,6 +3,7 @@ import {
   type ApiResponse,
   type ChangePasswordRequest,
   type LoginRequest,
+  type LoginExternalRequest,
   type LoginResponse,
   type RegisterRequest,
   type UserProfile,
@@ -12,6 +13,8 @@ export const authApi = {
   login: (data: LoginRequest) =>
     apiClient.post<ApiResponse<LoginResponse>>('/identity/auth/login', data),
 
+  loginExternal: (data: LoginExternalRequest) =>
+    apiClient.post<ApiResponse<LoginResponse>>('/identity/auth/external', data),
   register: (data: RegisterRequest) =>
     apiClient.post<ApiResponse<LoginResponse>>('/identity/auth/register', data),
 
