@@ -11,6 +11,11 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface LoginExternalRequest {
+  provider: 'Google' | 'Facebook';
+  idToken: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   user: UserProfile;
@@ -32,7 +37,7 @@ export interface ChangePasswordRequest {
 export interface UserProfile {
   id: string;
   email: string;
-  fullName: string;
+  full_name: string;
   avatar?: string;
   role?: string;
 }

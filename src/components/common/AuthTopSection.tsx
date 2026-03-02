@@ -8,7 +8,7 @@ interface AuthTopSectionProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: ReactNode;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function AuthTopSection({ topInset, icon, title, subtitle, onBack }: AuthTopSectionProps) {

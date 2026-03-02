@@ -42,7 +42,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         ...user,
         id: user?.id || decoded.id,
         email: user?.email || decoded.email,
-        fullName: user?.fullName || decoded.fullName || 'Người Dùng',
+        full_name:
+          user?.full_name || (user as any)?.fullName || decoded.full_name || decoded.fullName,
         role: user?.role || decoded[CLAIM.ROLE],
       } as UserProfile;
     } catch (e) {
@@ -69,9 +70,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const userValue = savedUser[1];
 
       if (tokenValue) {
+        let parsedUser = userValue ? JSON.parse(userValue) : null;
+        if (parsedUser && (parsedUser as any).fullName && !parsedUser.full_name) {
+          parsedUser.full_name = (parsedUser as any).fullName;
+        }
+
         set({
           token: tokenValue,
-          user: userValue ? JSON.parse(userValue) : null,
+          user: parsedUser,
           isAuthenticated: true,
           isLoading: false,
         });
