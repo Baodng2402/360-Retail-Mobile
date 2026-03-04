@@ -16,23 +16,23 @@ interface SoldSummaryCardProps {
 
 function SoldSummaryCardComponent({ count, percentage }: SoldSummaryCardProps) {
     return (
-        <View className="mt-2 rounded-2xl bg-surface p-4 shadow-sm">
-            <View className="flex-row justify-between items-center">
+        <View className="mb-2 mt-2 rounded-3xl bg-surface p-5 border border-border shadow-sm">
+            <View className="flex-row justify-between items-start">
                 <View>
-                    <Text className="text-[13px] font-medium text-muted">Đã bán tháng này</Text>
-                    <View className="flex-row items-baseline mt-1">
-                        <Text className="text-[28px] font-extrabold text-foreground">{count}</Text>
-                        <Text className="ml-1 text-[13px] text-muted">sản phẩm</Text>
+                    <View className="flex-row items-baseline mb-1">
+                        <Text className="text-4xl font-black text-foreground tracking-tighter">{count}</Text>
+                        <Text className="ml-1 text-sm font-semibold text-muted">sản phẩm</Text>
                     </View>
+                    <Text className="text-xs font-semibold text-muted">Đã bán tháng này</Text>
                 </View>
-                <View className="w-11 h-11 rounded-[14px] bg-cyan-100 items-center justify-center">
-                    <Ionicons name="cart-outline" size={22} color={COLORS.primary} />
+                <View className="w-12 h-12 rounded-2xl bg-cyan-100 items-center justify-center opacity-90">
+                    <Ionicons name="cart-outline" size={24} color={COLORS.primary} />
                 </View>
             </View>
-            <View className="mt-3">
-                <View className="flex-row justify-between mb-1.5">
-                    <Text className="text-xs text-muted">Tiến độ mục tiêu</Text>
-                    <Text className="text-xs font-bold text-cyan-600">{percentage}%</Text>
+            <View className="mt-5">
+                <View className="flex-row justify-between mb-2">
+                    <Text className="text-[11px] font-semibold text-muted">Tiến độ mục tiêu</Text>
+                    <Text className="text-[11px] font-bold text-cyan-600">{percentage}%</Text>
                 </View>
                 <Progress value={percentage} />
             </View>

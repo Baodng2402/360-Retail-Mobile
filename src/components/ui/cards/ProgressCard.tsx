@@ -17,15 +17,15 @@ interface ProgressCardProps {
 function ProgressCardComponent({ percentage, label, value, color }: ProgressCardProps) {
     const ringColor = color || COLORS.primary;
     return (
-        <View className="mx-1 flex-1 items-center rounded-2xl bg-surface p-4 shadow-sm">
+        <View className="mx-1 mb-2 flex-1 items-center rounded-3xl bg-surface p-5 border border-border shadow-sm">
             <View
-                className="w-16 h-16 rounded-full items-center justify-center mb-2.5"
-                style={{ borderWidth: 5, borderColor: ringColor + '25' }}
+                className="w-[72px] h-[72px] rounded-full items-center justify-center mb-3"
+                style={{ borderWidth: 6, borderColor: ringColor + '20' }}
             >
                 <View
-                    className="absolute w-16 h-16 rounded-full"
+                    className="absolute w-[72px] h-[72px] rounded-full"
                     style={{
-                        borderWidth: 5,
+                        borderWidth: 6,
                         borderColor: 'transparent',
                         borderTopColor: ringColor,
                         borderRightColor: percentage > 25 ? ringColor : 'transparent',
@@ -33,12 +33,12 @@ function ProgressCardComponent({ percentage, label, value, color }: ProgressCard
                         borderLeftColor: percentage > 75 ? ringColor : 'transparent',
                     }}
                 />
-                <Text className="text-base font-extrabold" style={{ color: ringColor }}>
+                <Text className="text-lg font-black tracking-tighter" style={{ color: ringColor }}>
                     {percentage}%
                 </Text>
             </View>
-            <Text className="text-center text-[11px] font-semibold text-muted">{label}</Text>
-            <Text className="mt-0.5 text-sm font-bold text-foreground">{value}</Text>
+            <Text className="text-center text-[10px] uppercase font-bold text-muted mb-1">{label}</Text>
+            <Text className="text-[22px] font-black text-foreground tracking-tight">{value}</Text>
         </View>
     );
 }

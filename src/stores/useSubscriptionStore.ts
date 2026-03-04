@@ -32,9 +32,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     set({ isLoading: true });
     try {
       const res = await subscriptionApi.getStatus();
-      const data = res.data as unknown as SubscriptionStatus;
+      // API trả về { data: { data: SubscriptionStatus } } hoặc { data: SubscriptionStatus }
+      const raw = res.data as any;
+      const data: SubscriptionStatus = raw?.data ?? raw;
+      console.log('[SubscriptionStore] planName:', data?.planName, 'status:', data?.status);
       set({ status: data, isLoading: false });
-    } catch {
+    } catch (err) {
+      console.error('[SubscriptionStore] fetchStatus error:', err);
       set({ isLoading: false });
     }
   },
@@ -45,6 +49,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   // Kiểm tra tính năng có được phép dùng không (check feature flag theo plan)
   canUse: (feature: FeatureKey) => {
     const { status } = get();
+
+    // Nếu subscription đang Active mà planName null → BE không trả plan name
+    // → mặc định mở khoá tất cả (user đã trả tiền)
+    if (status?.status === 'Active' && !status.planName) {
+      return true;
+    }
+
     const config = getPlanConfig(status?.planName ?? null);
     return config.features[feature];
   },

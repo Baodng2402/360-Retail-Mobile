@@ -27,4 +27,12 @@ export const authApi = {
 
   resendOTP: (email: string) =>
     apiClient.post<ApiResponse<any>>('/identity/auth/resend-otp', { email }),
+
+  /** Yêu cầu đặt lại mật khẩu — gửi OTP về email */
+  forgotPassword: (email: string) =>
+    apiClient.post<ApiResponse<any>>('/identity/auth/forgot-password', { email }),
+
+  /** Đặt lại mật khẩu bằng OTP nhận được */
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    apiClient.post<ApiResponse<any>>('/identity/auth/reset-password', { email, code, newPassword }),
 };

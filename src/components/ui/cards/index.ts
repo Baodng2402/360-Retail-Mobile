@@ -10,3 +10,4 @@ export { OrderHistoryCard } from './OrderHistoryCard';
 export { CategoryChip, TabChip } from './Chip';
 export { MenuItem } from './MenuItem';
 export { BestSellerCard } from './BestSellerCard';
+export { ModernRevenueChart } from './ModernRevenueChart';

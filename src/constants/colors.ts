@@ -1,13 +1,13 @@
 export const COLORS = {
-  // Primary — Teal accent (from Stitch design, bright version)
-  primary: '#26C6DA',
-  primaryDark: '#00ACC1',
-  primaryLight: '#E0F7FA',
+  // Primary — Teal accent (Synced from web repo)
+  primary: '#19D6C8',
+  primaryDark: '#0FA297',
+  primaryLight: '#E0FAFA',
 
-  // Action — Orange accent for CTAs
-  accent: '#FF7043',
-  accentDark: '#E64A19',
-  accentLight: '#FBE9E7',
+  // Action — Orange accent for CTAs (Synced from web repo)
+  accent: '#FF7B21',
+  accentDark: '#D45D0F',
+  accentLight: '#FFE8DB',
 
   // Semantic
   success: '#4CAF50',

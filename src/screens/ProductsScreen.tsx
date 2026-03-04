@@ -1,14 +1,20 @@
-import { useCallback, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Image, RefreshControl, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import { products } from '@/src/data/mockData';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
 import { formatCurrency } from '@/src/utils/format';
 import { COLORS } from '@/src/constants/colors';
 import { ScreenHeader, SearchField } from '@/src/components';
+import { productsApi, categoriesApi } from '@/src/api';
+import { useStoreStore } from '@/src/stores/useStoreStore';
+import { useAuthStore } from '@/src/stores/useAuthStore';
+import type { MoreStackParamList } from '@/src/navigation/types';
 
-const FILTERS = ['Danh mục', 'Trạng thái', 'Khoảng giá', 'Tồn kho'];
+type ProductsScreenNavigationProp = StackNavigationProp<MoreStackParamList, 'ProductManagement'>;
 
 const STOCK_STYLE: Record<string, { label: string; bg: string; text: string }> = {
   in_stock: { label: 'CÒN HÀNG', bg: 'rgba(34,197,94,0.12)', text: '#16A34A' },
@@ -18,85 +24,132 @@ const STOCK_STYLE: Record<string, { label: string; bg: string; text: string }> =
 
 export function ProductsScreen() {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+  const navigation = useNavigation<ProductsScreenNavigationProp>();
+  const activeStore = useStoreStore((s) => s.activeStore);
+
+  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+
+  const rawRole = useAuthStore((s) => s.user?.role);
+  const userRole = Array.isArray(rawRole) ? rawRole[0] ?? '' : rawRole ?? '';
+  const canViewInactive = userRole === 'StoreOwner' || userRole === 'Manager';
+
+  const listRef = useRef<FlatList<any>>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!activeStore) return;
+    try {
+      if (activeTab === 'products') {
+        const fetchedProducts = await productsApi.getProducts({
+          storeId: activeStore.id,
+          includeInactive: showInactive
+        });
+        setProducts(fetchedProducts);
+      } else {
+        const fetchedCategories = await categoriesApi.getCategories(activeStore.id, showInactive);
+        setCategories(fetchedCategories);
+      }
+    } catch (error) {
+      console.error('Failed to load data', error);
+      Toast.show({ type: 'error', text1: 'Lỗi tải dữ liệu' });
+    }
+  }, [activeStore, activeTab, showInactive]);
+
+  useEffect(() => {
+    if (isFocused) {
+      setLoading(true);
+      fetchData().finally(() => setLoading(false));
+    }
+  }, [isFocused, activeTab, fetchData]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((item) => {
-      if (!normalizedQuery) return true;
-      return (
-        item.productName.toLowerCase().includes(normalizedQuery) ||
-        item.sku?.toLowerCase().includes(normalizedQuery) ||
-        item.categoryName?.toLowerCase().includes(normalizedQuery)
-      );
+  const filteredData = useMemo(() => {
+    if (activeTab === 'products') {
+      return products.filter((item) => {
+        if (!normalizedQuery) return true;
+        return (
+          (item.productName || '').toLowerCase().includes(normalizedQuery) ||
+          (item.sku || '').toLowerCase().includes(normalizedQuery) ||
+          (item.category?.categoryName || '').toLowerCase().includes(normalizedQuery)
+        );
+      });
+    } else {
+      return categories.filter((item) => {
+        if (!normalizedQuery) return true;
+        return (
+          (item.categoryName || '').toLowerCase().includes(normalizedQuery) ||
+          (item.name || '').toLowerCase().includes(normalizedQuery)
+        );
+      });
+    }
+  }, [products, categories, normalizedQuery, activeTab]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
-  }, [normalizedQuery]);
+  }, [normalizedQuery, activeTab]);
 
-  const renderFilterItem = useCallback(({ item }: { item: string }) => {
-    const active = item === 'Khoảng giá';
+  const handleAdd = () => {
+    if (activeTab === 'products') {
+      navigation.navigate('ProductForm', {});
+    } else {
+      navigation.navigate('CategoryForm', {});
+    }
+  };
 
-    return (
-      <TouchableOpacity
-        className="mr-2 flex-row items-center rounded-full border px-4 py-2"
-        style={{
-          backgroundColor: active ? 'rgba(38,198,218,0.12)' : COLORS.surface,
-          borderColor: active ? 'rgba(38,198,218,0.25)' : COLORS.border,
-        }}
-        activeOpacity={0.8}
-        onPress={() =>
-          Toast.show({
-            type: 'info',
-            text1: `Bộ lọc: ${item}`,
-            text2: 'Sắp có logic lọc dữ liệu',
-          })
-        }>
-        <Text className="text-xs font-semibold" style={{ color: active ? COLORS.primary : COLORS.textSecondary }}>
-          {item}
-        </Text>
-        <Ionicons
-          name={active ? 'close' : 'chevron-down'}
-          size={14}
-          color={active ? COLORS.primary : COLORS.textMuted}
-          style={{ marginLeft: 6 }}
-        />
-      </TouchableOpacity>
-    );
-  }, []);
-
-  const renderProductItem = useCallback(({ item }: { item: (typeof products)[number] }) => {
-    const stock = STOCK_STYLE[item.status || 'in_stock'] || STOCK_STYLE.in_stock;
+  const renderProductItem = ({ item }: { item: any }) => {
+    let stockStatus = 'in_stock';
+    if (item.stockQuantity <= 0) stockStatus = 'out_of_stock';
+    else if (item.stockQuantity <= 3) stockStatus = 'low_stock';
+    const stock = STOCK_STYLE[stockStatus];
 
     return (
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() =>
-          Toast.show({
-            type: 'info',
-            text1: item.productName,
-            text2: `${formatCurrency(item.price)} • Tồn kho ${item.stockQuantity}`,
-          })
-        }
-        className="mb-3 flex-row rounded-xl border border-border bg-surface p-3">
-        <View className="relative mr-3 h-20 w-20 items-center justify-center rounded-lg bg-bg">
-          <Ionicons name="cube-outline" size={24} color={COLORS.textMuted} />
+        onPress={() => navigation.navigate('ProductForm', { productId: item.id })}
+        className="mb-3 flex-row rounded-xl border border-border bg-surface p-3"
+        style={{ opacity: item.stockQuantity <= 0 ? 0.6 : 1 }}>
+        <View className="relative mr-3 h-20 w-20 items-center justify-center overflow-hidden rounded-lg bg-bg">
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} className="h-full w-full" resizeMode="cover" />
+          ) : (
+            <Ionicons name="cube-outline" size={24} color={COLORS.textMuted} />
+          )}
           <View className="absolute left-1 top-1 rounded px-1.5 py-0.5" style={{ backgroundColor: stock.bg }}>
-            <Text className="text-[9px] font-bold" style={{ color: stock.text }}>
-              {stock.label}
-            </Text>
+            <Text className="text-[9px] font-bold" style={{ color: stock.text }}>{stock.label}</Text>
           </View>
         </View>
 
         <View className="flex-1 justify-between py-0.5">
           <View className="flex-row items-start justify-between">
-            <Text className="mr-3 flex-1 text-sm font-semibold text-foreground">{item.productName}</Text>
-            <TouchableOpacity className="rounded-full p-1" activeOpacity={0.7}>
-              <Ionicons name="ellipsis-vertical" size={16} color={COLORS.textMuted} />
+            <View className="flex-row items-center flex-1 mr-3">
+              <Text className="text-sm font-semibold text-foreground flex-shrink-1" numberOfLines={2}>{item.productName}</Text>
+              {item.isActive === false && (
+                <View className="ml-2 rounded px-1.5 py-0.5" style={{ backgroundColor: COLORS.errorLight }}>
+                  <Text className="text-[9px] font-bold" style={{ color: COLORS.error }}>ĐÃ ẨN</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity className="rounded-full p-1 ml-1" activeOpacity={0.7} onPress={() => navigation.navigate('ProductForm', { productId: item.id })}>
+              <Ionicons name="pencil" size={16} color={COLORS.textMuted} />
             </TouchableOpacity>
           </View>
-
-          <Text className="text-xs text-muted">SKU: {item.sku || 'N/A'}</Text>
-
+          <Text className="text-xs text-muted">Mã: {item.barCode || item.sku || 'N/A'}</Text>
           <View className="mt-2 flex-row items-end justify-between">
             <View>
               <Text className="text-[11px] text-muted">Đơn giá</Text>
@@ -110,57 +163,104 @@ export function ProductsScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, []);
+  };
+
+  const renderCategoryItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('CategoryForm', { categoryId: item.id })}
+      className="mb-3 flex-row items-center justify-between rounded-xl border border-border bg-surface p-4">
+      <View className="flex-row items-center">
+        <View className="mr-3 h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(38,198,218,0.12)' }}>
+          <Ionicons name="folder-outline" size={20} color={COLORS.primary} />
+        </View>
+        <View className="flex-1">
+          <View className="flex-row items-center">
+            <Text className="text-base font-semibold text-foreground flex-shrink-1" numberOfLines={1}>{item.name || item.categoryName}</Text>
+            {item.isActive === false && (
+              <View className="ml-2 rounded px-1.5 py-0.5" style={{ backgroundColor: COLORS.errorLight }}>
+                <Text className="text-[9px] font-bold" style={{ color: COLORS.error }}>ĐÃ ẨN</Text>
+              </View>
+            )}
+          </View>
+          {item.parentName && <Text className="text-xs text-muted">Thuộc: {item.parentName}</Text>}
+        </View>
+      </View>
+      <TouchableOpacity className="rounded-full p-1" activeOpacity={0.7} onPress={() => navigation.navigate('CategoryForm', { categoryId: item.id })}>
+        <Ionicons name="pencil" size={16} color={COLORS.textMuted} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
 
   return (
     <View className="flex-1 bg-bg">
       <ScreenHeader
-        title="Sản phẩm"
+        title="Quản lý"
         topInset={insets.top}
+        showBackButton
         rightSlot={
           <TouchableOpacity
             className="h-10 w-10 items-center justify-center rounded-full bg-primary"
             activeOpacity={0.8}
-            onPress={() =>
-              Toast.show({ type: 'info', text1: 'Thêm sản phẩm', text2: 'Sắp có màn tạo sản phẩm' })
-            }>
+            onPress={handleAdd}>
             <Ionicons name="add" size={20} color="#0F172A" />
           </TouchableOpacity>
         }>
         <SearchField
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Tìm theo tên, SKU hoặc thẻ..."
-          rightIcon="qr-code-outline"
+          placeholder={activeTab === 'products' ? "Tìm theo tên, mã..." : "Tìm danh mục..."}
         />
       </ScreenHeader>
 
-      <View className="border-b border-divider bg-bg px-4 py-3">
-        <FlatList
-          horizontal
-          data={FILTERS}
-          keyExtractor={(item) => item}
-          showsHorizontalScrollIndicator={false}
-          renderItem={renderFilterItem}
-        />
+      {canViewInactive && (
+        <View className="flex-row items-center justify-between px-4 py-3 bg-surface border-b border-divider">
+          <Text className="text-sm font-semibold text-foreground">Hiển thị mục đã ẩn</Text>
+          <Switch
+            value={showInactive}
+            onValueChange={setShowInactive}
+            trackColor={{ false: COLORS.border, true: COLORS.primary }}
+          />
+        </View>
+      )}
+
+      <View className="flex-row border-b border-divider bg-surface px-4">
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className={`flex-1 items-center justify-center border-b-2 py-3 ${activeTab === 'products' ? 'border-primary' : 'border-transparent'}`}
+          onPress={() => setActiveTab('products')}>
+          <Text className={`text-sm font-semibold ${activeTab === 'products' ? 'text-primary' : 'text-muted'}`}>Sản phẩm</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className={`flex-1 items-center justify-center border-b-2 py-3 ${activeTab === 'categories' ? 'border-primary' : 'border-transparent'}`}
+          onPress={() => setActiveTab('categories')}>
+          <Text className={`text-sm font-semibold ${activeTab === 'categories' ? 'text-primary' : 'text-muted'}`}>Danh mục</Text>
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        removeClippedSubviews
-        ListEmptyComponent={
-          <View className="items-center pt-16">
-            <Ionicons name="cube-outline" size={48} color={COLORS.textLight} />
-            <Text className="mt-3 text-base text-muted">Không tìm thấy sản phẩm</Text>
-          </View>
-        }
-        renderItem={renderProductItem}
-      />
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={filteredData}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+          ListEmptyComponent={
+            <View className="items-center pt-16">
+              <Ionicons name={activeTab === 'products' ? 'cube-outline' : 'folder-outline'} size={48} color={COLORS.textLight} />
+              <Text className="mt-3 text-base text-muted">
+                {activeTab === 'products' ? 'Không có sản phẩm nào' : 'Không có danh mục nào'}
+              </Text>
+            </View>
+          }
+          renderItem={activeTab === 'products' ? renderProductItem : renderCategoryItem}
+        />
+      )}
     </View>
   );
 }

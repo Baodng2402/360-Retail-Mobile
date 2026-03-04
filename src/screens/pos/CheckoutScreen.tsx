@@ -2,24 +2,27 @@ import { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { COLORS } from '@/src/constants/colors';
 import { formatCurrency } from '@/src/utils/format';
-import type { CartItem } from '@/src/types';
 import { PrimaryButton, ScreenHeader } from '@/src/components';
+import { ordersApi } from '@/src/api';
+import type { RentalsStackParamList } from '@/src/navigation/types';
 
-const MOCK_CART: CartItem[] = [
-    { product: { id: '1', productName: 'iPhone 15 Pro Max', price: 34_990_000, stockQuantity: 12, sku: 'IPH-001' }, quantity: 1 },
-    { product: { id: '5', productName: 'AirPods Pro 2', price: 6_490_000, stockQuantity: 25, sku: 'AIR-001' }, quantity: 2 },
-];
+type CheckoutScreenRouteProp = RouteProp<RentalsStackParamList, 'Checkout'>;
 
+// Use 'card', 'cash', 'qr' internally, map to API types on submit
 type PaymentMethod = 'card' | 'cash' | 'qr';
 
 export function CheckoutScreen() {
     const navigation = useNavigation();
+    const route = useRoute<CheckoutScreenRouteProp>();
     const insets = useSafeAreaInsets();
-    const [cart, setCart] = useState<CartItem[]>(MOCK_CART);
+
+    // Get cart from navigation params or default to empty
+    const [cart, setCart] = useState<any[]>(route.params?.cart || []);
+
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
     const [loading, setLoading] = useState(false);
 
@@ -37,14 +40,42 @@ export function CheckoutScreen() {
             .filter((item) => item.quantity > 0));
     }, []);
 
-    const handleComplete = useCallback(() => {
+    const handleComplete = useCallback(async () => {
+        if (cart.length === 0) {
+            Toast.show({ type: 'error', text1: 'Giỏ hàng trống', text2: 'Vui lòng chọn sản phẩm' });
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            // Map payment method to API friendly string
+            const mappedPaymentMethod = paymentMethod === 'qr' ? 'Bank Transfer' : paymentMethod === 'card' ? 'Credit Card' : 'Cash';
+
+            const payload = {
+                paymentMethod: mappedPaymentMethod,
+                discountAmount: discount,
+                items: cart.map(item => ({
+                    productId: item.product.id,
+                    quantity: item.quantity
+                }))
+            };
+
+            await ordersApi.createOrder(payload);
+
             Toast.show({ type: 'success', text1: 'Đặt hàng thành công!', text2: `Tổng: ${formatCurrency(total)}` });
+
+            // Go back to POS or Orders, we go to POS then maybe reset standard cart?
+            if (route.params?.onComplete) {
+                route.params.onComplete();
+            }
             navigation.goBack();
-        }, 1500);
-    }, [navigation, total]);
+        } catch (error) {
+            console.error(error);
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tạo đơn hàng' });
+        } finally {
+            setLoading(false);
+        }
+    }, [cart, paymentMethod, discount, total, navigation, route.params]);
 
     const paymentMethods: { key: PaymentMethod; label: string; icon: string }[] = [
         { key: 'card', label: 'Thẻ', icon: 'card-outline' },
@@ -76,8 +107,8 @@ export function CheckoutScreen() {
                         <Ionicons name="person" size={20} color={COLORS.primary} />
                     </View>
                     <View className="flex-1 ml-3">
-                        <Text className="text-sm font-semibold text-foreground">Nguyễn Văn An</Text>
-                        <Text className="text-xs text-muted">an.nguyen@email.com</Text>
+                        <Text className="text-sm font-semibold text-foreground">Khách vãng lai</Text>
+                        <Text className="text-xs text-muted">Mua tại quầy</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
                 </View>
@@ -88,7 +119,7 @@ export function CheckoutScreen() {
                     {cart.map((item) => (
                         <View key={item.product.id} className="flex-row items-center py-2.5 border-b border-divider">
                             <View className="w-11 h-11 rounded-xl bg-bg items-center justify-center">
-                                <Ionicons name="phone-portrait-outline" size={20} color={COLORS.textMuted} />
+                                <Ionicons name="cube-outline" size={20} color={COLORS.textMuted} />
                             </View>
                             <View className="flex-1 ml-3">
                                 <Text className="text-sm font-semibold text-foreground">{item.product.productName}</Text>
@@ -107,6 +138,9 @@ export function CheckoutScreen() {
                             </View>
                         </View>
                     ))}
+                    {cart.length === 0 && (
+                        <Text className="text-sm text-muted text-center py-4">Giỏ hàng trống</Text>
+                    )}
                 </View>
 
                 {/* Discount */}

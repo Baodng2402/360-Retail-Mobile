@@ -1,12 +1,4 @@
-import type {
-  Store,
-  Product,
-  Order,
-  Category,
-  Customer,
-  ActivityItem,
-  BestSeller,
-} from '@/src/types';
+import type { Store, Product, Order, Category, Customer } from '@/src/types';
 
 export const stores: Store[] = [
   {
@@ -24,12 +16,12 @@ export const stores: Store[] = [
 ];
 
 export const categories: Category[] = [
-  { id: '1', name: 'Tất cả', icon: 'grid-outline' },
-  { id: '2', name: 'Điện thoại', icon: 'phone-portrait-outline' },
-  { id: '3', name: 'Laptop', icon: 'laptop-outline' },
-  { id: '4', name: 'Phụ kiện', icon: 'headset-outline' },
-  { id: '5', name: 'Đồng hồ', icon: 'watch-outline' },
-  { id: '6', name: 'Âm thanh', icon: 'musical-notes-outline' },
+  { id: '1', categoryName: 'Tất cả', isActive: true },
+  { id: '2', categoryName: 'Điện thoại', isActive: true },
+  { id: '3', categoryName: 'Laptop', isActive: true },
+  { id: '4', categoryName: 'Phụ kiện', isActive: true },
+  { id: '5', categoryName: 'Đồng hồ', isActive: true },
+  { id: '6', categoryName: 'Âm thanh', isActive: true },
 ];
 
 export const products: Product[] = [
@@ -39,8 +31,9 @@ export const products: Product[] = [
     price: 34_990_000,
     stockQuantity: 12,
     categoryName: 'Điện thoại',
-    sku: 'IPH-001',
-    status: 'in_stock',
+    categoryId: '2',
+    barCode: 'IPH-001',
+    isActive: true,
   },
   {
     id: '2',
@@ -48,8 +41,9 @@ export const products: Product[] = [
     price: 31_990_000,
     stockQuantity: 8,
     categoryName: 'Điện thoại',
-    sku: 'SAM-001',
-    status: 'in_stock',
+    categoryId: '2',
+    barCode: 'SAM-001',
+    isActive: true,
   },
   {
     id: '3',
@@ -57,8 +51,9 @@ export const products: Product[] = [
     price: 49_990_000,
     stockQuantity: 3,
     categoryName: 'Laptop',
-    sku: 'MAC-001',
-    status: 'low_stock',
+    categoryId: '3',
+    barCode: 'MAC-001',
+    isActive: true,
   },
   {
     id: '4',
@@ -66,8 +61,9 @@ export const products: Product[] = [
     price: 18_990_000,
     stockQuantity: 0,
     categoryName: 'Laptop',
-    sku: 'IPD-001',
-    status: 'out_of_stock',
+    categoryId: '3',
+    barCode: 'IPD-001',
+    isActive: true,
   },
   {
     id: '5',
@@ -75,8 +71,9 @@ export const products: Product[] = [
     price: 6_490_000,
     stockQuantity: 25,
     categoryName: 'Phụ kiện',
-    sku: 'AIR-001',
-    status: 'in_stock',
+    categoryId: '4',
+    barCode: 'AIR-001',
+    isActive: true,
   },
   {
     id: '6',
@@ -84,8 +81,9 @@ export const products: Product[] = [
     price: 23_990_000,
     stockQuantity: 2,
     categoryName: 'Đồng hồ',
-    sku: 'AWU-001',
-    status: 'low_stock',
+    categoryId: '5',
+    barCode: 'AWU-001',
+    isActive: true,
   },
   {
     id: '7',
@@ -93,8 +91,9 @@ export const products: Product[] = [
     price: 8_490_000,
     stockQuantity: 15,
     categoryName: 'Âm thanh',
-    sku: 'SNY-001',
-    status: 'in_stock',
+    categoryId: '6',
+    barCode: 'SNY-001',
+    isActive: true,
   },
   {
     id: '8',
@@ -102,17 +101,18 @@ export const products: Product[] = [
     price: 5_990_000,
     stockQuantity: 10,
     categoryName: 'Âm thanh',
-    sku: 'SGB-001',
-    status: 'in_stock',
+    categoryId: '6',
+    barCode: 'SGB-001',
+    isActive: true,
   },
 ];
 
-export const customers: Customer[] = [
-  { id: '1', name: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phone: '0901 234 567' },
-  { id: '2', name: 'Trần Thị Bình', email: 'binh.tran@email.com', phone: '0912 345 678' },
-  { id: '3', name: 'Lê Minh Cường', email: 'cuong.le@email.com', phone: '0923 456 789' },
-  { id: '4', name: 'Phạm Hồng Đào', email: 'dao.pham@email.com', phone: '0934 567 890' },
-  { id: '5', name: 'Hoàng Đức Em', email: 'em.hoang@email.com', phone: '0945 678 901' },
+export const mockCustomers: Customer[] = [
+  { id: '1', fullName: 'Nguyễn Văn An', email: 'an.nguyen@email.com', phoneNumber: '0901 234 567' },
+  { id: '2', fullName: 'Trần Thị Bình', email: 'binh.tran@email.com', phoneNumber: '0912 345 678' },
+  { id: '3', fullName: 'Lê Minh Cường', email: 'cuong.le@email.com', phoneNumber: '0923 456 789' },
+  { id: '4', fullName: 'Phạm Hồng Đào', email: 'dao.pham@email.com', phoneNumber: '0934 567 890' },
+  { id: '5', fullName: 'Hoàng Đức Em', email: 'em.hoang@email.com', phoneNumber: '0945 678 901' },
 ];
 
 export const orders: Order[] = [
@@ -121,49 +121,54 @@ export const orders: Order[] = [
     code: '#DH2094',
     customerName: 'Nguyễn Văn An',
     totalAmount: 41_480_000,
-    status: 'pending',
+    status: 'Pending',
     createdAt: new Date('2023-10-24').toISOString(),
-    itemCount: 2,
+    discountAmount: 0,
+    orderItems: [],
   },
   {
     id: '2',
     code: '#DH2093',
     customerName: 'Trần Thị Bình',
     totalAmount: 34_990_000,
-    status: 'processing',
+    status: 'Processing',
     createdAt: new Date('2023-10-23').toISOString(),
-    itemCount: 1,
+    discountAmount: 0,
+    orderItems: [],
   },
   {
     id: '3',
     code: '#DH2092',
     customerName: 'Lê Minh Cường',
     totalAmount: 68_970_000,
-    status: 'completed',
+    status: 'Completed',
     createdAt: new Date('2023-10-22').toISOString(),
-    itemCount: 3,
+    discountAmount: 0,
+    orderItems: [],
   },
   {
     id: '4',
     code: '#DH2091',
     customerName: 'Phạm Hồng Đào',
     totalAmount: 23_990_000,
-    status: 'shipping',
+    status: 'Processing',
     createdAt: new Date('2023-10-21').toISOString(),
-    itemCount: 1,
+    discountAmount: 0,
+    orderItems: [],
   },
   {
     id: '5',
     code: '#DH2090',
     customerName: 'Hoàng Đức Em',
     totalAmount: 0,
-    status: 'cancelled',
+    status: 'Cancelled',
     createdAt: new Date('2023-10-20').toISOString(),
-    itemCount: 1,
+    discountAmount: 0,
+    orderItems: [],
   },
 ];
 
-export const activityFeed: ActivityItem[] = [
+export const activityFeed: any[] = [
   {
     id: '1',
     type: 'order_shipped',
@@ -202,7 +207,7 @@ export const activityFeed: ActivityItem[] = [
   },
 ];
 
-export const bestSellers: BestSeller[] = [
+export const bestSellers: any[] = [
   {
     id: '1',
     name: 'iPhone 15 Pro Max',

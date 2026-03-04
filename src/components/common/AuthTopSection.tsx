@@ -15,12 +15,16 @@ export function AuthTopSection({ topInset, icon, title, subtitle, onBack }: Auth
   return (
     <>
       <View className="px-6" style={{ paddingTop: topInset + 20 }}>
-        <TouchableOpacity
-          className="h-10 w-10 items-center justify-center rounded-full"
-          activeOpacity={0.7}
-          onPress={onBack}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-        </TouchableOpacity>
+        {onBack ? (
+          <TouchableOpacity
+            className="h-10 w-10 items-center justify-center rounded-full"
+            activeOpacity={0.7}
+            onPress={onBack}>
+            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          </TouchableOpacity>
+        ) : (
+          <View className="h-10 w-10" />
+        )}
       </View>
 
       <View className="items-center px-6 pb-9 pt-4">

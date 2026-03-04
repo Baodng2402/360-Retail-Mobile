@@ -1,2 +1,9 @@
 export { apiClient } from './client';
 export { authApi } from './auth.api';
+export { salesDashboardApi } from './salesDashboard.api';
+export { ordersApi } from './orders.api';
+export { categoriesApi } from './categories.api';
+export { productsApi } from './products.api';
+export { inventoryApi } from './inventory.api';
+export { hrApi } from './hr.api';
+export { crmApi } from './crm.api';

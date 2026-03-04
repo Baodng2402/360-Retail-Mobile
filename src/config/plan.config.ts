@@ -110,11 +110,20 @@ export const PLAN_CONFIGS: Record<PlanName, PlanConfig> = {
   },
 };
 
-// Helper: lấy config theo planName (fallback Trial nếu null/unknown)
+// Helper: lấy config theo planName (case-insensitive, fallback Trial nếu null/unknown)
 export function getPlanConfig(planName: string | null): PlanConfig {
-  if (planName && planName in PLAN_CONFIGS) {
-    return PLAN_CONFIGS[planName as PlanName];
+  if (!planName) return PLAN_CONFIGS.Trial;
+
+  // Tìm config matching case-insensitive (ví dụ: "yearly" → "Yearly")
+  const normalizedKey = Object.keys(PLAN_CONFIGS).find(
+    (key) => key.toLowerCase() === planName.toLowerCase()
+  ) as PlanName | undefined;
+
+  if (normalizedKey) {
+    return PLAN_CONFIGS[normalizedKey];
   }
+
+  console.warn(`[PlanConfig] Unknown planName: "${planName}", fallback to Trial`);
   return PLAN_CONFIGS.Trial;
 }
 

@@ -2,19 +2,30 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { MainTabParamList } from './types';
 import { HomeScreen } from '@/src/screens/HomeScreen';
-import { ProductsScreen } from '@/src/screens/ProductsScreen';
 import { OrdersScreen } from '@/src/screens/OrdersScreen';
 import { ProfileNavigator } from './ProfileNavigator';
 import { RentalsNavigator } from './RentalsNavigator';
+import { MoreNavigator } from './MoreNavigator';
 import { COLORS } from '@/src/constants/colors';
+
+// =============================================
+// Main Tab Navigator — 5 tabs chính
+//
+// Tab layout:
+//   Tổng quan | Bán hàng | Đơn hàng | Thêm | Hồ sơ
+//
+// Tab "Thêm" chứa tất cả screens quản lý,
+// lọc theo role trong MoreMenuScreen.
+// =============================================
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+/** Cấu hình icon + label cho từng tab */
 const TAB_CONFIG: Record<keyof MainTabParamList, { active: string; inactive: string; label: string }> = {
     Home: { active: 'home', inactive: 'home-outline', label: 'Tổng quan' },
     Rentals: { active: 'pricetag', inactive: 'pricetag-outline', label: 'Bán hàng' },
     Orders: { active: 'receipt', inactive: 'receipt-outline', label: 'Đơn hàng' },
-    Inventory: { active: 'cube', inactive: 'cube-outline', label: 'Kho hàng' },
+    More: { active: 'grid', inactive: 'grid-outline', label: 'Thêm' },
     ProfileStack: { active: 'person', inactive: 'person-outline', label: 'Hồ sơ' },
 };
 
@@ -54,12 +65,11 @@ export function MainNavigator() {
                     borderTopWidth: 1,
                     borderTopColor: COLORS.divider,
                 },
-            })}
-        >
+            })}>
             <Tab.Screen name="Home" component={HomeScreen} />
             <Tab.Screen name="Rentals" component={RentalsNavigator} />
             <Tab.Screen name="Orders" component={OrdersScreen} />
-            <Tab.Screen name="Inventory" component={ProductsScreen} />
+            <Tab.Screen name="More" component={MoreNavigator} />
             <Tab.Screen name="ProfileStack" component={ProfileNavigator} />
         </Tab.Navigator>
     );

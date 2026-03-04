@@ -152,7 +152,10 @@ export function LoginScreen({ navigation }: Props) {
               onChangeText={setPassword}
             />
 
-            <TouchableOpacity className="mb-6 self-end" activeOpacity={0.7}>
+            <TouchableOpacity
+              className="mb-6 self-end"
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('ForgotPassword')}>
               <Text className="text-sm font-semibold text-primary">Quên mật khẩu?</Text>
             </TouchableOpacity>
 

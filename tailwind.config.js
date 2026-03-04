@@ -5,27 +5,27 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary — Teal
+        // Primary — Teal (Synced from web)
         primary: {
-          DEFAULT: '#26C6DA',
-          dark: '#00ACC1',
-          light: '#E0F7FA',
-          50: '#E0F7FA',
-          100: '#B2EBF2',
-          200: '#80DEEA',
-          300: '#4DD0E1',
-          400: '#26C6DA',
-          500: '#00BCD4',
-          600: '#00ACC1',
-          700: '#0097A7',
-          800: '#00838F',
-          900: '#006064',
+          DEFAULT: '#19D6C8',
+          dark: '#0FA297',
+          light: '#E0FAFA',
+          50: '#F0FCFC',
+          100: '#E0FAFA',
+          200: '#BEF5F2',
+          300: '#9DEFEE',
+          400: '#7BEAEB',
+          500: '#5AE4E8',
+          600: '#38DFE4',
+          700: '#19D6C8',
+          800: '#0FA297',
+          900: '#0B7A72',
         },
-        // Accent — Orange CTA
+        // Accent — Orange CTA (Synced from web)
         accent: {
-          DEFAULT: '#FF7043',
-          dark: '#E64A19',
-          light: '#FBE9E7',
+          DEFAULT: '#FF7B21',
+          dark: '#D45D0F',
+          light: '#FFE8DB',
         },
         // Semantic
         success: { DEFAULT: '#4CAF50', light: '#E8F5E9' },

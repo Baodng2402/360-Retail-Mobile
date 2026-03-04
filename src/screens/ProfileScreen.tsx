@@ -10,6 +10,11 @@ import { COLORS } from '@/src/constants/colors';
 import type { ProfileStackParamList } from '@/src/navigation/types';
 import { ScreenHeader } from '@/src/components';
 
+// =============================================
+// Profile Screen — Chỉ giữ thông tin cá nhân + cài đặt app
+// Các tính năng quản lý (CH, NV, Báo cáo) đã được chuyển sang tab "Thêm"
+// =============================================
+
 type ItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -44,6 +49,13 @@ export function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
+  // Normalize role (array hoặc string)
+  const rawRole = user?.role;
+  const displayRole = Array.isArray(rawRole) ? rawRole[0] : rawRole;
+  const roleName = displayRole === 'StoreOwner' ? 'Chủ cửa hàng'
+    : displayRole === 'Manager' ? 'Quản lý'
+      : displayRole === 'Staff' ? 'Nhân viên' : displayRole || '';
+
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
@@ -59,62 +71,33 @@ export function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <ScreenHeader title="Hồ sơ & Cài đặt" topInset={insets.top} />
+      <ScreenHeader title="Hồ sơ" topInset={insets.top} />
 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+
+        {/* Avatar + Info */}
         <View className="mb-5 items-center rounded-2xl border border-border bg-surface p-6">
           <View className="mb-4 h-24 w-24 items-center justify-center rounded-full border-4 border-bg bg-primary/15">
             <Ionicons name="person" size={40} color={COLORS.primary} />
-            <TouchableOpacity
-              className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary"
-              activeOpacity={0.8}>
-              <Ionicons name="pencil" size={14} color="#0F172A" />
-            </TouchableOpacity>
           </View>
-
           <Text className="text-xl font-bold text-foreground">
-            {user?.full_name || 'Nguyễn Văn A'}
+            {user?.full_name || 'Chưa cập nhật'}
           </Text>
-          <Text className="mt-1 text-sm text-muted">{user?.email || 'Quản lý cửa hàng'}</Text>
-          <View className="mt-2 rounded-full bg-primary/10 px-3 py-1">
-            <Text className="text-xs font-semibold text-primary">ID: {user?.id || '987654'}</Text>
-          </View>
+          <Text className="mt-1 text-sm text-muted">{user?.email}</Text>
+          {roleName ? (
+            <View className="mt-2 rounded-full bg-primary/10 px-3 py-1">
+              <Text className="text-xs font-semibold text-primary">{roleName}</Text>
+            </View>
+          ) : null}
         </View>
 
+        {/* Cài đặt app — chỉ giữ items riêng cho Profile */}
         <Text className="mb-3 ml-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-          Quản lý
+          Tài khoản
         </Text>
-        <SettingItem
-          icon="storefront-outline"
-          title="Quản lý cửa hàng"
-          subtitle="Quản lý chi nhánh & thông tin"
-          onPress={() => Toast.show({ type: 'info', text1: 'Quản lý cửa hàng', text2: 'Sắp có' })}
-        />
-        <SettingItem
-          icon="people-outline"
-          title="Quản lý nhân viên"
-          subtitle="Phân quyền & vai trò"
-          onPress={() => Toast.show({ type: 'info', text1: 'Quản lý nhân viên', text2: 'Sắp có' })}
-        />
-        <SettingItem
-          icon="stats-chart-outline"
-          title="Báo cáo doanh thu"
-          subtitle="Biểu đồ & phân tích doanh thu"
-          onPress={() => navigation.navigate('SalesReport')}
-        />
-
-        <Text className="mb-3 ml-1 mt-4 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-          Cài đặt ứng dụng
-        </Text>
-        <SettingItem
-          icon="hardware-chip-outline"
-          title="Cài đặt phần cứng"
-          subtitle="Máy in & máy quét"
-          onPress={() => Toast.show({ type: 'info', text1: 'Phần cứng', text2: 'Sắp có' })}
-        />
         <SettingItem
           icon="shield-checkmark-outline"
           title="Đổi mật khẩu"
@@ -127,7 +110,14 @@ export function ProfileScreen() {
           subtitle="Câu hỏi thường gặp & liên hệ"
           onPress={() => Toast.show({ type: 'info', text1: 'Trợ giúp', text2: 'Sắp có' })}
         />
+        <SettingItem
+          icon="information-circle-outline"
+          title="Về ứng dụng"
+          subtitle="Phiên bản 2.4.0 (Build 305)"
+          onPress={() => Toast.show({ type: 'info', text1: '360 Retail', text2: 'Phiên bản 2.4.0' })}
+        />
 
+        {/* Đăng xuất */}
         <TouchableOpacity
           className="mt-4 flex-row items-center justify-center rounded-xl border border-red-200 bg-red-50 py-4"
           activeOpacity={0.8}
@@ -137,12 +127,9 @@ export function ProfileScreen() {
             Đăng xuất
           </Text>
         </TouchableOpacity>
-
-        <Text className="mt-3 text-center text-xs text-text-light">
-          Phiên bản 2.4.0 (Build 305)
-        </Text>
       </ScrollView>
 
+      {/* Logout Modal */}
       <Modal
         visible={showLogoutModal}
         transparent
@@ -161,7 +148,6 @@ export function ProfileScreen() {
             <Text className="mt-2 text-center text-sm text-muted">
               Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?
             </Text>
-
             <TouchableOpacity
               className="mt-5 h-12 items-center justify-center rounded-xl"
               style={{ backgroundColor: COLORS.error }}
@@ -172,7 +158,6 @@ export function ProfileScreen() {
                 {loggingOut ? 'Đang đăng xuất...' : 'Đăng Xuất'}
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               className="mt-2.5 h-12 items-center justify-center rounded-xl bg-bg"
               activeOpacity={0.8}

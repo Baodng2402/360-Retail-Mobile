@@ -9,16 +9,33 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
-.env
+.env*
+!.env.example
 
+# Keys and Secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+GoogleService-Info.plist
+google-services.json
 
+# Documentation
+docs/
 
-
-ios
-android
+# Native folders (usually ignored in managed Expo unless ejected)
+/ios
+/android
 
 # macOS
 .DS_Store
 
-# Temporary files created by Metro to check the health of the file watcher
+# IDE and temporary files
+.vscode/
+.idea/
+*.log
+npm-debug.*
 .metro-health-check*
+*.orig.*

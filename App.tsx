@@ -1,12 +1,13 @@
 import './global.css';
-import { useEffect } from 'react';
-import {StatusBar } from 'react-native';
-import { NavigationContainer, type Theme } from '@react-navigation/native';
+import { useEffect, useRef } from 'react';
+import { StatusBar } from 'react-native';
+import { NavigationContainer, type Theme, type NavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AuthNavigator, MainNavigator } from '@/src/navigation';
 import { useAuthStore } from '@/src/stores';
 import { COLORS } from '@/src/constants/colors';
+import { UpgradeDialog } from '@/src/components/subscription/UpgradeDialog';
 
 const NAV_THEME: Theme = {
   dark: false,
@@ -44,10 +45,20 @@ function RootNavigator() {
 }
 
 export default function App() {
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+
+  /** Khi user nhấn "Nâng cấp ngay" → navigate đến Subscription */
+  const handleUpgrade = () => {
+    navigationRef.current?.navigate('More', {
+      screen: 'Subscription',
+    });
+  };
+
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={NAV_THEME}>
+      <NavigationContainer ref={navigationRef} theme={NAV_THEME}>
         <RootNavigator />
+        <UpgradeDialog onUpgrade={handleUpgrade} />
       </NavigationContainer>
       <Toast />
     </SafeAreaProvider>

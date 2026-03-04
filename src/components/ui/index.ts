@@ -13,6 +13,7 @@ export {
   TabChip,
   MenuItem,
   BestSellerCard,
+  ModernRevenueChart,
 } from './cards';
 
 // Primitives
