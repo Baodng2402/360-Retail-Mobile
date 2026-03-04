@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFeatureGateStore } from '@/src/stores/useFeatureGateStore';
 import type { FeatureGateErrorType } from '@/src/types';
@@ -13,7 +14,8 @@ import type { FeatureGateErrorType } from '@/src/types';
 //      (TrialExpired / SubscriptionExpired / FeatureNotAvailable)
 // =============================================
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const extra = Constants.expoConfig?.extra as { EXPO_PUBLIC_API_URL?: string } | undefined;
+const API_URL = extra?.EXPO_PUBLIC_API_URL;
 
 /** Danh sách error codes từ backend cho Feature Gating */
 const FEATURE_GATE_ERRORS: FeatureGateErrorType[] = [
