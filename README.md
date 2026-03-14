@@ -35,6 +35,10 @@ npm start
 - **Android**: Press `a` in the terminal or run `npm run android`
 - **Web**: Press `w` in the terminal or run `npm run web`
 
+### 4. Run on device/emulator with APK (Must use it because this app was setup Google Login)
+
+- **Android**: Run `npx expo run:android`
+
 ## Available Scripts
 
 | Command           | Description                    |
