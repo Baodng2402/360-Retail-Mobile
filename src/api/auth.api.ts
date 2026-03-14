@@ -33,6 +33,13 @@ export const authApi = {
     apiClient.post<ApiResponse<any>>('/identity/auth/forgot-password', { email }),
 
   /** Đặt lại mật khẩu bằng OTP nhận được */
-  resetPassword: (email: string, code: string, newPassword: string) =>
-    apiClient.post<ApiResponse<any>>('/identity/auth/reset-password', { email, code, newPassword }),
+  resetPassword: (email: string, resetCode: string, newPassword: string) =>
+    apiClient.post<ApiResponse<any>>('/identity/auth/reset-password', {
+      email,
+      resetCode,
+      newPassword,
+    }),
+
+  /** Đăng xuất (xóa token khỏi backend và blacklist token) */
+  logout: () => apiClient.post<ApiResponse<any>>('/identity/auth/logout'),
 };

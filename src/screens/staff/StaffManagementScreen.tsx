@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, RefreshControl, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, RefreshControl, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import type { StackScreenProps } from '@react-navigation/stack';
-import { hrApi, authApi } from '@/src/api';
+import { hrApi } from '@/src/api';
 import { COLORS } from '@/src/constants/colors';
 import type { Employee } from '@/src/types';
+import { useStoreStore } from '@/src/stores/useStoreStore';
 import type { MoreStackParamList } from '@/src/navigation/types';
 
 // =============================================
@@ -27,17 +28,17 @@ export function StaffManagementScreen({ navigation }: Props) {
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviting, setInviting] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
+    const activeStore = useStoreStore((s) => s.activeStore);
 
     // ──────────── Fetch data ────────────
     const fetchEmployees = useCallback(async () => {
         try {
-            const res = await hrApi.getEmployees();
-            const data = res.data?.data;
+            const data = await hrApi.getEmployees(activeStore?.id);
             setEmployees(Array.isArray(data) ? data : []);
         } catch {
             Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tải danh sách nhân viên' });
         }
-    }, []);
+    }, [activeStore?.id]);
 
     useEffect(() => {
         setLoading(true);
@@ -52,17 +53,22 @@ export function StaffManagementScreen({ navigation }: Props) {
 
     // ──────────── Mời nhân viên ────────────
     const handleInvite = async () => {
-        if (!inviteEmail.trim()) return;
+        if (!inviteEmail.trim() || !activeStore?.id) {
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Chưa chọn cửa hàng hoặc thiếu email' });
+            return;
+        }
+
         setInviting(true);
         try {
-            await authApi.login({ email: '', password: '' }); // placeholder — sẽ dùng apiClient trực tiếp
-            // Gọi đúng endpoint invite staff
-            const { apiClient } = await import('@/src/api/client');
-            await apiClient.post('/identity/staff/invite', { email: inviteEmail.trim() });
-            Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã gửi lời mời!' });
+            await hrApi.inviteStaff({
+                email: inviteEmail.trim(),
+                storeId: activeStore.id,
+                role: 'Staff'
+            });
+
+            Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã gửi lời mời qua email' });
             setInviteEmail('');
             setShowInvite(false);
-            fetchEmployees();
         } catch (error: any) {
             const msg = error.response?.data?.message || 'Gửi lời mời thất bại';
             Toast.show({ type: 'error', text1: 'Lỗi', text2: msg });

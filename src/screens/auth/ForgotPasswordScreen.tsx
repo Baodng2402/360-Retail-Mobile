@@ -42,6 +42,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
             navigation.navigate('ResetPassword', { email: email.trim() });
         } catch (error: any) {
             const message = error.response?.data?.message || 'Gửi yêu cầu thất bại';
+            console.log(error);
             Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
         } finally {
             setLoading(false);

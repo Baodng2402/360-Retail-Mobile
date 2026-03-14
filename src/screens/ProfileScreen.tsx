@@ -9,6 +9,7 @@ import { useAuthStore } from '@/src/stores';
 import { COLORS } from '@/src/constants/colors';
 import type { ProfileStackParamList } from '@/src/navigation/types';
 import { ScreenHeader } from '@/src/components';
+import { hasRole } from '@/src/utils/role';
 
 // =============================================
 // Profile Screen — Chỉ giữ thông tin cá nhân + cài đặt app
@@ -49,12 +50,14 @@ export function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  // Normalize role (array hoặc string)
   const rawRole = user?.role;
-  const displayRole = Array.isArray(rawRole) ? rawRole[0] : rawRole;
-  const roleName = displayRole === 'StoreOwner' ? 'Chủ cửa hàng'
-    : displayRole === 'Manager' ? 'Quản lý'
-      : displayRole === 'Staff' ? 'Nhân viên' : displayRole || '';
+  const roleName = hasRole(rawRole, 'StoreOwner')
+    ? 'Chủ cửa hàng'
+    : hasRole(rawRole, 'Manager')
+      ? 'Quản lý'
+      : hasRole(rawRole, 'Staff')
+        ? 'Nhân viên'
+        : '';
 
   const handleLogout = async () => {
     setLoggingOut(true);

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
 
 import { COLORS } from '@/src/constants/colors';
 import { ScreenHeader } from '@/src/components';
@@ -17,6 +18,7 @@ export function ProductFormScreen() {
     const activeStore = useStoreStore((s) => s.activeStore);
 
     const productId = route.params?.productId;
+    const storeName = route.params?.storeName;
     const isEdit = !!productId;
 
     const [loading, setLoading] = useState(isEdit);
@@ -35,6 +37,11 @@ export function ProductFormScreen() {
     const [description, setDescription] = useState('');
     const [isActive, setIsActive] = useState(true);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<any>(null);
+
+    // Variants State
+    const [hasVariants, setHasVariants] = useState(false);
+    const [variants, setVariants] = useState<{ sku: string, size: string, color: string, priceOverride: string, stockQuantity: string }[]>([]);
 
     useEffect(() => {
         async function init() {
@@ -55,9 +62,33 @@ export function ProductFormScreen() {
                     setDescription(product.description || '');
                     setIsActive(product.isActive !== false);
                     setImageUrl(product.imageUrl || null);
+
+                    if ('variants' in product && product.variants && typeof product.variants === 'string') {
+                        try {
+                            const parsed = JSON.parse(product.variants as string);
+                            if (parsed.length > 0) {
+                                setHasVariants(true);
+                                setVariants(parsed.map((v: any) => ({
+                                    sku: v.sku || '',
+                                    size: v.size || '',
+                                    color: v.color || '',
+                                    priceOverride: v.priceOverride ? v.priceOverride.toString() : '',
+                                    stockQuantity: v.stockQuantity ? v.stockQuantity.toString() : '0'
+                                })));
+                            }
+                        } catch { }
+                    } else if (Array.isArray(product.variants)) {
+                        setHasVariants(true);
+                        setVariants(product.variants.map((v: any) => ({
+                            sku: v.sku || '',
+                            size: v.size || '',
+                            color: v.color || '',
+                            priceOverride: v.priceOverride ? v.priceOverride.toString() : '',
+                            stockQuantity: v.stockQuantity ? v.stockQuantity.toString() : '0'
+                        })));
+                    }
                 }
             } catch (error) {
-                console.error(error);
                 Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể tải dữ liệu' });
                 if (isEdit) navigation.goBack();
             } finally {
@@ -67,9 +98,43 @@ export function ProductFormScreen() {
         init();
     }, [isEdit, productId, activeStore, navigation]);
 
+    // Handle results from system-killed activities (Android specific)
+    useEffect(() => {
+        async function checkPending() {
+            try {
+                const results = await ImagePicker.getPendingResultAsync();
+                if (results && Array.isArray(results) && results.length > 0) {
+                    handleImagePickerResult(results[0] as ImagePicker.ImagePickerResult);
+                }
+            } catch { }
+        }
+        checkPending();
+    }, []);
+
+    const handleImagePickerResult = (result: ImagePicker.ImagePickerResult) => {
+        if (result.canceled) return;
+
+        const asset = result.assets ? result.assets[0] : (result as any);
+        let pickedUri = asset.uri;
+
+        if (!pickedUri) return;
+
+        if (!pickedUri.startsWith('file://') && !pickedUri.startsWith('http') && !pickedUri.startsWith('content://')) {
+            pickedUri = `file://${pickedUri}`;
+        }
+
+        setImageUrl(pickedUri);
+
+        const filename = pickedUri.split('/').pop() || 'upload.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1].toLowerCase() === 'jpg' ? 'jpeg' : match[1].toLowerCase()}` : `image/jpeg`;
+
+        setImageFile({ uri: pickedUri, name: filename, type });
+    };
+
     const handleSubmit = async () => {
-        if (!productName.trim() || !price.trim() || !categoryId) {
-            Alert.alert('Lỗi', 'Vui lòng điền tên, giá và danh mục sản phẩm');
+        if (!productName.trim() || !price.trim() || !stockQuantity.trim() || !categoryId) {
+            Alert.alert('Lỗi', 'Vui lòng điền tên, giá, tồn kho và danh mục sản phẩm');
             return;
         }
 
@@ -79,39 +144,78 @@ export function ProductFormScreen() {
 
         setSubmitting(true);
         try {
+            const payload: any = {
+                productName,
+                price: numericPrice,
+                stockQuantity: numericStock,
+                categoryId,
+                isActive,
+                barCode,
+                description,
+                costPrice: numericCost,
+                hasVariants,
+                variants: hasVariants ? variants.map(v => ({
+                    sku: v.sku.trim() || undefined,
+                    size: v.size.trim() || undefined,
+                    color: v.color.trim() || undefined,
+                    priceOverride: v.priceOverride ? parseFloat(v.priceOverride.replace(/[^0-9.]/g, '')) : numericPrice,
+                    stockQuantity: v.stockQuantity ? parseInt(v.stockQuantity.replace(/[^0-9]/g, ''), 10) : numericStock
+                })) : []
+            };
+
+            if (imageFile) payload.imageFile = imageFile;
+
             if (isEdit) {
-                await productsApi.updateProduct(productId, {
-                    id: productId,
-                    productName,
-                    price: numericPrice,
-                    stockQuantity: numericStock,
-                    categoryId,
-                    isActive,
-                    barCode,
-                    description,
-                    costPrice: numericCost,
-                });
+                await productsApi.updateProduct(productId, { ...payload, id: productId });
                 Toast.show({ type: 'success', text1: 'Cập nhật thành công' });
             } else {
-                await productsApi.createProduct({
-                    productName,
-                    price: numericPrice,
-                    stockQuantity: numericStock,
-                    categoryId,
-                    isActive,
-                    barCode,
-                    description,
-                    costPrice: numericCost,
-                });
+                await productsApi.createProduct(payload);
                 Toast.show({ type: 'success', text1: 'Thêm sản phẩm thành công' });
             }
             navigation.goBack();
-        } catch (error) {
-            console.error(error);
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: `Không thể ${isEdit ? 'cập nhật' : 'tạo'} sản phẩm` });
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || error.message || '';
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: `Không thể ${isEdit ? 'cập nhật' : 'tạo'} sản phẩm. ${errorMsg}`
+            });
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const addVariant = () => {
+        setVariants([...variants, { sku: '', size: '', color: '', priceOverride: '', stockQuantity: '0' }]);
+    };
+
+    const updateVariant = (index: number, field: string, value: string) => {
+        const newVariants = [...variants];
+        newVariants[index] = { ...newVariants[index], [field]: value };
+        setVariants(newVariants);
+    };
+
+    const removeVariant = (index: number) => {
+        const newVariants = [...variants];
+        newVariants.splice(index, 1);
+        setVariants(newVariants);
+    };
+
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Lỗi', 'Bạn cần cho phép quyền truy cập thư viện ảnh để tải ảnh lên');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        handleImagePickerResult(result);
     };
 
     if (loading) {
@@ -124,17 +228,26 @@ export function ProductFormScreen() {
 
     return (
         <View className="flex-1 bg-bg">
-            <ScreenHeader title={isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm'} topInset={insets.top} showBackButton />
+            <ScreenHeader
+                title={isEdit ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
+                subtitle={storeName ? `Store: ${storeName}` : undefined}
+                topInset={insets.top}
+                showBackButton
+            />
 
             <ScrollView className="flex-1 px-4 py-2" contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* Ảnh SP Placeholder */}
+                {/* Ảnh SP */}
                 <View className="items-center mb-6 mt-4">
                     <TouchableOpacity
                         className="w-24 h-24 rounded-2xl bg-surface border border-dashed border-border items-center justify-center overflow-hidden"
                         activeOpacity={0.8}
-                        onPress={() => Toast.show({ type: 'info', text1: 'Đang phát triển upload ảnh' })}>
+                        onPress={handlePickImage}>
                         {imageUrl ? (
-                            <Image source={{ uri: imageUrl }} className="w-full h-full" resizeMode="cover" />
+                            <Image
+                                source={{ uri: imageUrl }}
+                                style={{ width: 96, height: 96 }}
+                                resizeMode="cover"
+                            />
                         ) : (
                             <Ionicons name="camera-outline" size={32} color={COLORS.textMuted} />
                         )}
@@ -142,6 +255,13 @@ export function ProductFormScreen() {
                             <Text className="text-[10px] text-white font-semibold">Tải ảnh lên</Text>
                         </View>
                     </TouchableOpacity>
+                    {imageUrl && (
+                        <TouchableOpacity
+                            className="mt-2 bg-red-100 py-1 px-3 rounded-lg"
+                            onPress={() => { setImageUrl(null); setImageFile(null); }}>
+                            <Text className="text-xs text-red-600 font-bold">Xóa ảnh</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Form Inputs */}
@@ -218,6 +338,98 @@ export function ProductFormScreen() {
                         onChangeText={setDescription}
                     />
                 </View>
+
+                {/* Variants Section */}
+                <View className="bg-surface rounded-xl p-4 border border-border flex-row justify-between items-center mb-4">
+                    <View>
+                        <Text className="text-base font-bold text-foreground">Sản phẩm nhiều phân loại</Text>
+                        <Text className="text-xs text-muted">Bật nếu sản phẩm có nhiều màu, size...</Text>
+                    </View>
+                    <Switch
+                        value={hasVariants}
+                        onValueChange={(val) => {
+                            setHasVariants(val);
+                            if (val && variants.length === 0) addVariant();
+                        }}
+                        trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                    />
+                </View>
+
+                {hasVariants && (
+                    <View className="mb-4">
+                        {variants.map((variant, index) => (
+                            <View key={index} className="bg-surface rounded-xl p-4 border border-border mb-3 relative">
+                                <TouchableOpacity
+                                    className="absolute top-2 right-2 p-2 bg-errorLight rounded-full z-10"
+                                    onPress={() => removeVariant(index)}
+                                >
+                                    <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                                </TouchableOpacity>
+                                <Text className="font-bold text-foreground mb-3 border-b border-divider pb-2">Phân loại #{index + 1}</Text>
+
+                                <View className="flex-row gap-2 mb-2">
+                                    <View className="flex-1">
+                                        <Text className="text-xs text-muted mb-1">Màu sắc</Text>
+                                        <TextInput
+                                            className="border border-divider rounded-lg py-1 px-2 text-sm text-foreground"
+                                            placeholder="Đen, Trắng..."
+                                            value={variant.color}
+                                            onChangeText={(v) => updateVariant(index, 'color', v)}
+                                        />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-xs text-muted mb-1">Kích cỡ</Text>
+                                        <TextInput
+                                            className="border border-divider rounded-lg py-1 px-2 text-sm text-foreground"
+                                            placeholder="S, M, L..."
+                                            value={variant.size}
+                                            onChangeText={(v) => updateVariant(index, 'size', v)}
+                                        />
+                                    </View>
+                                </View>
+                                <View className="flex-row gap-2">
+                                    <View className="flex-1">
+                                        <Text className="text-xs text-muted mb-1">SKU</Text>
+                                        <TextInput
+                                            className="border border-divider rounded-lg py-1 px-2 text-sm text-foreground"
+                                            placeholder="Mã vạch..."
+                                            value={variant.sku}
+                                            onChangeText={(v) => updateVariant(index, 'sku', v)}
+                                        />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-xs text-muted mb-1">Giá bán</Text>
+                                        <TextInput
+                                            className="border border-divider rounded-lg py-1 px-2 text-sm text-foreground"
+                                            placeholder="Mặc định"
+                                            keyboardType="numeric"
+                                            value={variant.priceOverride}
+                                            onChangeText={(v) => updateVariant(index, 'priceOverride', v)}
+                                        />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-xs text-muted mb-1">Tồn kho</Text>
+                                        <TextInput
+                                            className="border border-divider rounded-lg py-1 px-2 text-sm text-foreground"
+                                            placeholder="0"
+                                            keyboardType="numeric"
+                                            value={variant.stockQuantity}
+                                            onChangeText={(v) => updateVariant(index, 'stockQuantity', v)}
+                                        />
+                                    </View>
+                                </View>
+                            </View>
+                        ))}
+                        <TouchableOpacity
+                            className="bg-primaryLight rounded-xl py-3 items-center flex-row justify-center border border-primary/20"
+                            activeOpacity={0.7}
+                            onPress={addVariant}
+                        >
+                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} className="mr-2" />
+                            <Text className="text-primary font-bold ml-1">Thêm dòng phân loại mới</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {isEdit && (
                     <View className="bg-surface rounded-xl p-4 border border-border flex-row justify-between items-center mb-6">

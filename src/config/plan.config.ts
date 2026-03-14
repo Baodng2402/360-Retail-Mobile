@@ -15,7 +15,8 @@ export type FeatureKey =
   | 'loyalty' // Chương trình loyalty
   | 'exportExcel' // Xuất file Excel
   | 'inviteByEmail' // Mời nhân viên qua email
-  | 'multiStore'; // Quản lý nhiều cửa hàng
+  | 'multiStore' // Quản lý nhiều cửa hàng
+  | 'inventory'; // Quản lý kho hàng
 
 // Giới hạn số lượng — numeric limits
 export interface PlanLimits {
@@ -51,6 +52,7 @@ export const PLAN_CONFIGS: Record<PlanName, PlanConfig> = {
       exportExcel: false,
       inviteByEmail: false,
       multiStore: false,
+      inventory: false, // Kho hàng — ẩn với gói Trial
     },
   },
 
@@ -69,6 +71,7 @@ export const PLAN_CONFIGS: Record<PlanName, PlanConfig> = {
       exportExcel: false,
       inviteByEmail: true,
       multiStore: false,
+      inventory: true,
     },
   },
 
@@ -87,6 +90,7 @@ export const PLAN_CONFIGS: Record<PlanName, PlanConfig> = {
       exportExcel: true,
       inviteByEmail: true,
       multiStore: false,
+      inventory: true,
     },
   },
 
@@ -106,6 +110,7 @@ export const PLAN_CONFIGS: Record<PlanName, PlanConfig> = {
       exportExcel: true,
       inviteByEmail: true,
       multiStore: true,
+      inventory: true,
     },
   },
 };
@@ -138,6 +143,7 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   exportExcel: 'Xuất Excel',
   inviteByEmail: 'Mời NV qua email',
   multiStore: 'Quản lý nhiều cửa hàng',
+  inventory: 'Quản lý kho hàng',
 };
 
 // Gói tối thiểu cần để dùng feature
@@ -151,4 +157,29 @@ export const FEATURE_MIN_PLAN: Record<FeatureKey, PlanName> = {
   exportExcel: 'Pro',
   inviteByEmail: 'Basic',
   multiStore: 'Yearly',
+  inventory: 'Basic',
+};
+
+/**
+ * Menu Screen -> Feature Key mapping
+ * Dùng để filter menu items theo feature availability
+ */
+export const MENU_FEATURE_MAP: Record<string, FeatureKey | null> = {
+  // Navigation screen -> feature gate key (null = no gate)
+  'Timekeeping': 'gpsAttendance', // Chấm công GPS → requires Pro+
+  'MyTasks': 'tasks',            // Công việc → requires Basic+
+  'TaskManagement': 'tasks',
+  'StaffManagement': null,       // Quản lý nhân sự — no gate
+  'EmployeeManagement': null,
+  'StoreManagement': null,       // Quản lý cửa hàng — no gate
+  'ProductManagement': null,     // Sản phẩm luôn truy cập (giống web sidebar)
+  'InventoryManagement': 'inventory', // Kho hàng — requires Basic+
+  'CustomerManagement': null,    // Khách hàng — no gate
+  'Feedback': 'feedbackQR',
+  'Loyalty': 'loyalty',
+  'CrmDashboard': 'loyalty',     // CRM & Loyalty → requires Pro+ (for loyalty)
+  'Reports': 'exportExcel',      // Báo cáo → requires Pro+ (for export)
+  'Settings': null,              // Cài đặt — no gate
+  'Subscription': null,          // Gói đăng ký — no gate (only for owner)
+  'Payment': null,
 };

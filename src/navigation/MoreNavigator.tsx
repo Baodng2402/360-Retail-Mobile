@@ -5,6 +5,7 @@ import { STACK_SCREEN_OPTIONS } from './screenOptions';
 // Screens
 import { MoreMenuScreen } from '@/src/screens/more/MoreMenuScreen';
 import { MyTasksScreen } from '@/src/screens/tasks/MyTasksScreen';
+import { EmployeeManagementScreen } from '@/src/screens/employees/EmployeeManagementScreen';
 import { StaffManagementScreen } from '@/src/screens/staff/StaffManagementScreen';
 import { EmployeeDetailScreen } from '@/src/screens/staff/EmployeeDetailScreen';
 import { StoreManagementScreen } from '@/src/screens/stores/StoreManagementScreen';
@@ -14,6 +15,10 @@ import { ReportsScreen } from '@/src/screens/reports/ReportsScreen';
 import { SettingsScreen } from '@/src/screens/settings/SettingsScreen';
 import { TimekeepingScreen } from '@/src/screens/timekeeping/TimekeepingScreen';
 import { SubscriptionScreen } from '@/src/screens/subscription/SubscriptionScreen';
+import { PaymentScreen } from '@/src/screens/subscription/PaymentScreen';
+import { FeedbackScreen } from '@/src/screens/feedback/FeedbackScreen';
+import { TaskManagementScreen } from '@/src/screens/tasks/TaskManagementScreen';
+import { LoyaltyScreen } from '@/src/screens/loyalty/LoyaltyScreen';
 import { ProductsScreen } from '@/src/screens/ProductsScreen';
 import { InventoryScreen } from '@/src/screens/inventory/InventoryScreen';
 import { ProductFormScreen } from '@/src/screens/products/ProductFormScreen';
@@ -35,8 +40,10 @@ export function MoreNavigator() {
         <Stack.Navigator screenOptions={STACK_SCREEN_OPTIONS}>
             <Stack.Screen name="MoreMenu" component={MoreMenuScreen} />
             <Stack.Screen name="MyTasks" component={MyTasksScreen} />
+            <Stack.Screen name="TaskManagement" component={TaskManagementScreen} />
             <Stack.Screen name="Timekeeping" component={TimekeepingScreen} />
             <Stack.Screen name="StaffManagement" component={StaffManagementScreen} />
+            <Stack.Screen name="EmployeeManagement" component={EmployeeManagementScreen} />
             <Stack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} />
             <Stack.Screen name="StoreManagement" component={StoreManagementScreen} />
             <Stack.Screen name="ProductManagement" component={ProductsScreen} />
@@ -46,10 +53,13 @@ export function MoreNavigator() {
             <Stack.Screen name="InventoryDetail" component={InventoryDetailScreen} />
             <Stack.Screen name="InventoryForm" component={InventoryFormScreen} />
             <Stack.Screen name="CustomerManagement" component={CustomerManagementScreen} />
+            <Stack.Screen name="Feedback" component={FeedbackScreen} />
+            <Stack.Screen name="Loyalty" component={LoyaltyScreen} />
             <Stack.Screen name="CrmDashboard" component={CrmDashboardScreen} />
             <Stack.Screen name="Reports" component={ReportsScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="Payment" component={PaymentScreen} />
         </Stack.Navigator>
     );
 }

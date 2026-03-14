@@ -1,41 +1,59 @@
+# Dependencies
 node_modules/
+
+# Expo
 .expo/
 dist/
-npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
 web-build/
+expo-env.d.ts
+
+# Build output
+/android
+/ios
+
+# Environment variables
 .env*
 !.env.example
 
-# Keys and Secrets
+# Secrets & certificates
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
-*.keystore
 GoogleService-Info.plist
 google-services.json
 
-# Documentation
-docs/
-
-# Native folders (usually ignored in managed Expo unless ejected)
-/ios
-/android
-
-# macOS
-.DS_Store
-
-# IDE and temporary files
-.vscode/
-.idea/
+# Logs
 *.log
 npm-debug.*
-.metro-health-check*
+yarn-error.log
+android/build_log.txt
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Package manager caches
+.npm-cache/
+.pnpm-store/
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Misc
 *.orig.*
+.metro-health-check*
+
+# Mobile build artifacts
+*.apk
+*.aab

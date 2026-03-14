@@ -1,7 +1,6 @@
 import { apiClient } from './client';
 import type {
   ApiResponse,
-  PaginatedResponse,
   Employee,
   UpdateEmployeeProfileDto,
   UpdateEmployeeByOwnerDto,
@@ -13,6 +12,19 @@ import type {
   TimekeepingHistoryRecord,
   CheckInDto,
 } from '@/src/types';
+import { extractList, extractSingle } from './utils/normalizeResponse';
+
+type EmployeeRole = 'Manager' | 'Staff';
+
+function buildUploadFormData(file: File | any, fieldName = 'file'): FormData {
+  if (typeof FormData !== 'undefined' && file instanceof FormData) {
+    return file;
+  }
+
+  const formData = new FormData();
+  formData.append(fieldName, file as any);
+  return formData;
+}
 
 // =============================================
 // HR API — Nhân sự, Công việc, Chấm công
@@ -23,27 +35,108 @@ export const hrApi = {
   // ──────────── EMPLOYEES (Nhân viên) ────────────
 
   /** Danh sách nhân viên trong store hiện tại */
-  getEmployees: () => apiClient.get<ApiResponse<Employee[]>>('/hr/employees'),
+  async getEmployees(storeId?: string, params?: { paging?: number }): Promise<Employee[]> {
+    try {
+      const res = await apiClient.get<ApiResponse<Employee[]> | Employee[]>('/hr/employees', {
+        params: {
+          ...(storeId ? { storeId } : {}),
+          ...(params ?? {}),
+        },
+      });
+      return extractList<Employee>(res);
+    } catch (error) {
+      console.error('[hrApi.getEmployees] Failed to fetch employees:', error);
+      throw error;
+    }
+  },
 
   /** Chi tiết 1 nhân viên theo ID */
-  getEmployee: (id: string) => apiClient.get<ApiResponse<Employee>>(`/hr/employees/${id}`),
+  async getEmployeeById(id: string): Promise<Employee> {
+    try {
+      const res = await apiClient.get<ApiResponse<Employee> | Employee>(`/hr/employees/${id}`);
+      return extractSingle<Employee>(res);
+    } catch (error) {
+      console.error(`[hrApi.getEmployeeById] Failed for id=${id}:`, error);
+      throw error;
+    }
+  },
+
+  /** Alias tương thích ngược */
+  getEmployee: (id: string) => hrApi.getEmployeeById(id),
 
   /** Thông tin nhân viên hiện tại (bản thân) */
-  getMe: () => apiClient.get<ApiResponse<Employee>>('/hr/employees/me'),
+  async getMe(): Promise<Employee> {
+    try {
+      const res = await apiClient.get<ApiResponse<Employee> | Employee>('/hr/employees/me');
+      return extractSingle<Employee>(res);
+    } catch (error) {
+      console.error('[hrApi.getMe] Failed to fetch current employee profile:', error);
+      throw error;
+    }
+  },
 
   /** Cập nhật profile của bản thân */
-  updateMe: (data: UpdateEmployeeProfileDto) =>
-    apiClient.put<ApiResponse<Employee>>('/hr/employees/me', data),
+  async updateMe(data: UpdateEmployeeProfileDto): Promise<Employee> {
+    try {
+      const res = await apiClient.put<ApiResponse<Employee> | Employee>('/hr/employees/me', data);
+      return extractSingle<Employee>(res);
+    } catch (error) {
+      console.error('[hrApi.updateMe] Failed to update current employee profile:', error);
+      throw error;
+    }
+  },
 
   /** Upload avatar (FormData với field "file") */
-  uploadAvatar: (formData: FormData) =>
-    apiClient.post<ApiResponse<{ avatarUrl: string }>>('/hr/employees/me/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  async uploadAvatar(file: File | FormData): Promise<{ avatarUrl: string }> {
+    try {
+      const formData = buildUploadFormData(file);
+      const res = await apiClient.post<ApiResponse<{ avatarUrl: string }> | { avatarUrl: string }>(
+        '/hr/employees/me/avatar',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
+
+      return extractSingle<{ avatarUrl: string }>(res);
+    } catch (error) {
+      console.error('[hrApi.uploadAvatar] Failed to upload avatar:', error);
+      throw error;
+    }
+  },
+
+  /** Mời nhân viên qua email */
+  async inviteEmployee(
+    email: string,
+    role: EmployeeRole,
+    storeId: string,
+  ): Promise<{ message: string }> {
+    try {
+      const res = await apiClient.post<ApiResponse<{ message: string }> | { message: string }>(
+        '/identity/staff/invite',
+        { email, role, storeId },
+      );
+      return extractSingle<{ message: string }>(res);
+    } catch (error) {
+      console.error('[hrApi.inviteEmployee] Failed to invite employee:', error);
+      throw error;
+    }
+  },
+
+  /** Tạm dịch: Mời nhân viên qua email (Identity Server) */
+  inviteStaff: (data: { email: string; storeId: string; role?: string }) =>
+    hrApi.inviteEmployee(data.email, (data.role as EmployeeRole) ?? 'Staff', data.storeId),
 
   /** Owner/Manager cập nhật thông tin nhân viên */
-  updateEmployee: (id: string, data: UpdateEmployeeByOwnerDto) =>
-    apiClient.put<ApiResponse<Employee>>(`/hr/employees/${id}`, data),
+  async updateEmployee(id: string, data: UpdateEmployeeByOwnerDto): Promise<Employee> {
+    try {
+      const res = await apiClient.put<ApiResponse<Employee> | Employee>(`/hr/employees/${id}`, data);
+      return extractSingle<Employee>(res);
+    } catch (error) {
+      console.error(`[hrApi.updateEmployee] Failed for id=${id}:`, error);
+      throw error;
+    }
+  },
 
   // ──────────── TASKS (Công việc) ────────────
 
@@ -86,10 +179,22 @@ export const hrApi = {
     apiClient.post<ApiResponse<any>>('/hr/timekeeping/check-out', data),
 
   /** Upload selfie chấm công (FormData với field "file") */
-  uploadSelfie: (formData: FormData) =>
-    apiClient.post<ApiResponse<{ imageUrl: string }>>('/hr/timekeeping/upload-selfie', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  async uploadSelfie(file: File | FormData): Promise<{ avatarUrl: string }> {
+    try {
+      const formData = buildUploadFormData(file);
+      const res = await apiClient.post<ApiResponse<{ avatarUrl: string }> | { avatarUrl: string }>(
+        '/hr/timekeeping/upload-selfie',
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        },
+      );
+      return extractSingle<{ avatarUrl: string }>(res);
+    } catch (error) {
+      console.error('[hrApi.uploadSelfie] Failed to upload selfie:', error);
+      throw error;
+    }
+  },
 
   /** Tổng kết chấm công tháng (Owner/Manager only) */
   getMonthlySummary: () => apiClient.get<ApiResponse<any>>('/hr/timekeeping/summary'),

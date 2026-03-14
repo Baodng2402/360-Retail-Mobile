@@ -18,7 +18,7 @@ export function InventoryFormScreen() {
 
     const [type, setType] = useState<'Import' | 'Export'>('Import');
     const [note, setNote] = useState('');
-    const [items, setItems] = useState<{ productId: string; productName: string; quantity: number }[]>([]);
+    const [items, setItems] = useState<{ productId: string; productVariantId?: string | null; productName: string; quantity: number }[]>([]);
     const [submitting, setSubmitting] = useState(false);
 
     // Bảng chọn SP
@@ -36,12 +36,21 @@ export function InventoryFormScreen() {
         }
     }, [showProductPicker, activeStore, products.length]);
 
-    const handleAddProduct = (product: any) => {
-        if (items.some(i => i.productId === product.id)) {
+    const handleAddProduct = (productItem: any) => {
+        const isDuplicate = items.some(i =>
+            i.productId === productItem.id && i.productVariantId === productItem.vid
+        );
+
+        if (isDuplicate) {
             Toast.show({ type: 'error', text1: 'Sản phẩm đã có trong phiếu' });
             return;
         }
-        setItems(prev => [...prev, { productId: product.id, productName: product.productName, quantity: 1 }]);
+        setItems(prev => [...prev, {
+            productId: productItem.id,
+            productVariantId: productItem.vid,
+            productName: productItem.productName,
+            quantity: 1
+        }]);
         setShowProductPicker(false);
     };
 
@@ -69,7 +78,11 @@ export function InventoryFormScreen() {
             await inventoryApi.createTicket({
                 type,
                 note,
-                items: items.map(i => ({ productId: i.productId, quantity: i.quantity }))
+                items: items.map(i => ({
+                    productId: i.productId,
+                    productVariantId: i.productVariantId,
+                    quantity: i.quantity
+                }))
             });
             Toast.show({ type: 'success', text1: 'Tạo phiếu kho thành công' });
             navigation.goBack();
@@ -190,8 +203,20 @@ export function InventoryFormScreen() {
                         </View>
                     ) : (
                         <FlatList
-                            data={products}
-                            keyExtractor={i => i.id}
+                            data={products.flatMap(p => {
+                                if (p.hasVariants && p.variants && p.variants.length > 0) {
+                                    return p.variants.map((v: any) => ({
+                                        ...p,
+                                        id: p.id,
+                                        vid: v.id,
+                                        productName: `${p.productName} - ${v.color || ''} ${v.size || ''}`.trim(),
+                                        stockQuantity: v.stockQuantity ?? 0,
+                                        price: v.priceOverride ?? p.price
+                                    }));
+                                }
+                                return [{ ...p, vid: null }];
+                            })}
+                            keyExtractor={(i: any) => i.vid ? `${i.id}-${i.vid}` : i.id}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     className="flex-row items-center justify-between p-3 border-b border-divider"

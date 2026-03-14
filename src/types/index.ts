@@ -128,6 +128,8 @@ export interface Product {
   stockQuantity: number;
   categoryId: string;
   categoryName?: string;
+  /** Nested category object — một số endpoint trả về dạng này thay vì categoryName flat */
+  category?: { id?: string; categoryName: string };
   imageUrl?: string | null;
   isActive: boolean;
   hasVariants?: boolean;
@@ -380,28 +382,30 @@ export interface GetInventoryParams {
 }
 
 // ===== Customer =====
+// Mirrors BE: _360Retail.Services.CRM.Application.DTOs.CustomerDto
 export interface Customer {
   id: string;
   fullName: string;
   phoneNumber: string;
-  email?: string | null;
-  createdAt?: string;
-  isActive?: boolean;
-  totalOrders?: number;
-  totalSpend?: number;
+  zaloId?: string | null;
+  lastPurchaseDate?: string | null;
+  totalPoints: number;
+  rank?: string | null;
+  storeId?: string | null;
 }
 
+// Mirrors BE: CreateCustomerDto
 export interface CreateCustomerDto {
   fullName: string;
   phoneNumber: string;
-  email?: string;
+  zaloId?: string;
 }
 
+// Mirrors BE: UpdateCustomerDto
 export interface UpdateCustomerDto {
   fullName: string;
   phoneNumber: string;
-  email?: string;
-  isActive?: boolean;
+  zaloId?: string;
 }
 
 // ===== Feedback =====

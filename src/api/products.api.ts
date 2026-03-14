@@ -7,50 +7,86 @@ import type {
   UpdateProductDto,
   ProductsResponse,
 } from '@/src/types';
+import { extractList, extractPaged, extractSingle } from './utils/normalizeResponse';
+
+type ProductFormPayload = FormData | CreateProductDto | UpdateProductDto;
+
+function isFormData(value: unknown): value is FormData {
+  return typeof FormData !== 'undefined' && value instanceof FormData;
+}
+
+function buildProductFormData(data: ProductFormPayload, productId?: string): FormData {
+  if (isFormData(data)) {
+    return data;
+  }
+
+  const formData = new FormData();
+  const typedData = data as CreateProductDto | UpdateProductDto;
+
+  if (productId || 'id' in typedData) {
+    formData.append('Id', productId ?? (typedData as UpdateProductDto).id);
+  }
+
+  formData.append('ProductName', typedData.productName);
+  formData.append('CategoryId', typedData.categoryId);
+  formData.append('Price', typedData.price.toString());
+  formData.append('StockQuantity', typedData.stockQuantity.toString());
+
+  if ('isActive' in typedData && typedData.isActive !== undefined) {
+    formData.append('IsActive', typedData.isActive.toString());
+  }
+  if (typedData.hasVariants !== undefined) {
+    formData.append('HasVariants', typedData.hasVariants.toString());
+  }
+  if (typedData.barCode) formData.append('BarCode', typedData.barCode);
+  if (typedData.description) formData.append('Description', typedData.description);
+  if (typedData.costPrice !== undefined) {
+    formData.append('CostPrice', typedData.costPrice.toString());
+  }
+
+  if ('variantsJson' in typedData && typedData.variantsJson) {
+    formData.append('VariantsJson', typedData.variantsJson);
+  } else if (typedData.variants && typedData.variants.length > 0) {
+    formData.append('VariantsJson', JSON.stringify(typedData.variants));
+  }
+
+  if (typedData.imageFile) {
+    formData.append('ImageFile', typedData.imageFile as any);
+  }
+
+  return formData;
+}
 
 export const productsApi = {
   async getProducts(params?: GetProductsParams): Promise<Product[]> {
-    const queryParams = new URLSearchParams();
-
-    if (params?.storeId) queryParams.append('storeId', params.storeId);
-    if (params?.keyword) queryParams.append('keyword', params.keyword);
-    if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
-    if (params?.includeInactive !== undefined) {
-      queryParams.append('includeInactive', params.includeInactive.toString());
-    }
-
-    const url = `sales/Products?${queryParams.toString()}`;
-    const res = await apiClient.get<ApiResponse<ProductsResponse> | Product[]>(url);
-
     const mapProduct = (p: any) => ({
       ...p,
       category: p.category || { categoryName: p.categoryName || 'Không có' },
     });
 
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      const data = res.data.data;
+    try {
+      const queryParams = new URLSearchParams();
 
-      if (typeof data === 'object' && 'items' in data && Array.isArray(data.items)) {
-        return data.items.map(mapProduct);
+      if (params?.storeId) queryParams.append('storeId', params.storeId);
+      if (params?.keyword) queryParams.append('keyword', params.keyword);
+      if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+      if (params?.includeInactive !== undefined) {
+        queryParams.append('includeInactive', params.includeInactive.toString());
       }
 
-      if (Array.isArray(data)) {
-        return data.map(mapProduct);
+      const url = `sales/Products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const res = await apiClient.get<ApiResponse<ProductsResponse> | Product[]>(url);
+      const paged = extractPaged<Product>(res);
+      if (paged.items.length > 0) {
+        return paged.items.map(mapProduct);
       }
-    }
 
-    if (Array.isArray(res.data)) {
-      return res.data.map(mapProduct);
+      return extractList<Product>(res).map(mapProduct);
+    } catch (error) {
+      throw error;
     }
-
-    const rawData = res.data?.data as any;
-    if (Array.isArray(rawData)) {
-      return rawData.map(mapProduct);
-    }
-
-    return [];
   },
 
   async getProductById(id: string, storeId?: string): Promise<Product> {
@@ -58,89 +94,26 @@ export const productsApi = {
     if (storeId) queryParams.append('storeId', storeId);
 
     const res = await apiClient.get<ApiResponse<Product> | Product>(
-      `sales/Products/${id}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+      `sales/Products/${id}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`,
     );
 
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      return res.data.data;
-    }
-    return res.data as Product;
+    return extractSingle<Product>(res);
   },
 
-  async createProduct(data: CreateProductDto): Promise<Product> {
-    const formData = new FormData();
-
-    formData.append('ProductName', data.productName);
-    formData.append('CategoryId', data.categoryId);
-    formData.append('Price', data.price.toString());
-    formData.append('StockQuantity', data.stockQuantity.toString());
-
-    if (data.hasVariants !== undefined) {
-      formData.append('HasVariants', data.hasVariants.toString());
-    }
-    if (data.barCode) formData.append('BarCode', data.barCode);
-    if (data.description) formData.append('Description', data.description);
-    if (data.costPrice !== undefined) {
-      formData.append('CostPrice', data.costPrice.toString());
-    }
-    if (data.variants && data.variants.length > 0) {
-      formData.append('VariantsJson', JSON.stringify(data.variants));
-    }
-    if (data.imageFile) {
-      // Assume imageFile is { uri, name, type }
-      formData.append('ImageFile', data.imageFile as any);
-    }
-
+  async createProduct(data: FormData | CreateProductDto): Promise<Product> {
+    const formData = buildProductFormData(data);
     const res = await apiClient.post<ApiResponse<Product> | Product>('sales/Products', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': undefined },
     });
-
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      return res.data.data;
-    }
-    return res.data as Product;
+    return extractSingle<Product>(res);
   },
 
-  async updateProduct(id: string, data: UpdateProductDto): Promise<Product> {
-    const formData = new FormData();
-
-    formData.append('Id', id);
-    formData.append('ProductName', data.productName);
-    formData.append('Price', data.price.toString());
-    formData.append('StockQuantity', data.stockQuantity.toString());
-    formData.append('CategoryId', data.categoryId);
-    formData.append('IsActive', data.isActive.toString());
-
-    if (data.hasVariants !== undefined) {
-      formData.append('HasVariants', data.hasVariants.toString());
-    }
-    if (data.barCode) formData.append('BarCode', data.barCode);
-    if (data.description) formData.append('Description', data.description);
-    if (data.costPrice !== undefined) {
-      formData.append('CostPrice', data.costPrice.toString());
-    }
-    if (data.imageFile) {
-      formData.append('ImageFile', data.imageFile as any);
-    }
-    if (data.variantsJson) formData.append('VariantsJson', data.variantsJson);
-    else if (data.variants) formData.append('VariantsJson', JSON.stringify(data.variants));
-
-    const res = await apiClient.put<ApiResponse<Product> | Product>(
-      `sales/Products/${id}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      return res.data.data;
-    }
-    return res.data as Product;
+  async updateProduct(id: string, data: FormData | UpdateProductDto): Promise<Product> {
+    const formData = buildProductFormData(data, id);
+    const res = await apiClient.put<ApiResponse<Product> | Product>(`sales/Products/${id}`, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return extractSingle<Product>(res);
   },
 
   async deleteProduct(id: string): Promise<void> {

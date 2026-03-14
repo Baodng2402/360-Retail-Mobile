@@ -4,29 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import Toast from 'react-native-toast-message';
 import { formatCurrency } from '@/src/utils/format';
 import { COLORS } from '@/src/constants/colors';
-import type { CartItem } from '@/src/types';
+import type { Product } from '@/src/types';
 import type { RentalsStackParamList } from '@/src/navigation/types';
 import { HorizontalChips, ScreenHeader, SearchField } from '@/src/components';
 import { categoriesApi, productsApi } from '@/src/api';
 import { useStoreStore } from '@/src/stores/useStoreStore';
-
-// Temporary local interfaces mapped from API
-interface ApiProduct {
-  id: string;
-  productName: string;
-  price: number;
-  stockQuantity: number;
-  category?: { categoryName: string };
-  imageUrl?: string;
-}
-
-interface ApiCategory {
-  id: string;
-  categoryName: string;
-}
+import { useCart } from '@/src/hooks/useCart';
 
 export function POSScreen() {
   const insets = useSafeAreaInsets();
@@ -34,117 +19,95 @@ export function POSScreen() {
   const isFocused = useIsFocused();
   const activeStore = useStoreStore((s) => s.activeStore);
 
+  // ── Cart (tách ra hook riêng) ─────────────────
+  const { items: cart, count: cartCount, total: cartTotal, addItem, clearCart } = useCart();
+
+  // ── Data State ────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const listRef = useRef<FlatList<ApiProduct>>(null);
-
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
-  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [categories, setCategories] = useState<{ id: string; categoryName: string }[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load Data
+  const listRef = useRef<FlatList<Product>>(null);
+
+  // ── Fetch data khi màn hình được focus ────────
   useEffect(() => {
+    if (!isFocused || !activeStore) return;
+
+    let isMounted = true;
+
     async function fetchData() {
-      if (!activeStore) return;
       try {
         setLoading(true);
         const [cats, prods] = await Promise.all([
           categoriesApi.getCategories(),
           productsApi.getProducts(),
         ]);
-
-        // Map data
-        setCategories(cats as any);
-        setProducts(prods as any);
+        if (!isMounted) return;
+        setCategories(cats as { id: string; categoryName: string }[]);
+        setProducts(prods as Product[]);
       } catch (error) {
-        console.error('Failed to load POS data', error);
+        console.error('[POSScreen] Failed to load data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
-    if (isFocused) {
-      fetchData();
-    }
+    fetchData();
+    return () => { isMounted = false; };
   }, [activeStore, isFocused]);
 
-
+  // ── Filter / Search ───────────────────────────
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
-      const catName = item.category?.categoryName || 'Không có';
+      const catName = item.category?.categoryName ?? item.categoryName ?? 'Không có';
       const byCategory = selectedCategory === 'Tất cả' || catName === selectedCategory;
       const byQuery = !normalizedQuery || item.productName.toLowerCase().includes(normalizedQuery);
       return byCategory && byQuery;
     });
   }, [products, normalizedQuery, selectedCategory]);
 
+  // Scroll về đầu khi filter thay đổi
   useEffect(() => {
     requestAnimationFrame(() => {
       listRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
   }, [selectedCategory, normalizedQuery]);
 
-  const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + (item.product as any).price * item.quantity, 0),
-    [cart]
-  );
-  const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
-
-  const categoryItems = useMemo(() => {
+  // ── Derived ───────────────────────────────────
+  const categoryChips = useMemo(() => {
     const all = [{ key: 'Tất cả', label: 'Tất cả' }];
-    const mapped = categories.map((c) => ({ key: c.categoryName, label: c.categoryName }));
-    return [...all, ...mapped];
+    return [...all, ...categories.map((c) => ({ key: c.categoryName, label: c.categoryName }))];
   }, [categories]);
 
-  const addToCart = useCallback((product: ApiProduct) => {
-    if (product.stockQuantity <= 0) {
-      Toast.show({ type: 'error', text1: 'Sản phẩm đã hết hàng', text2: product.productName });
-      return;
-    }
-
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-
-      // Check stock limit
-      if (existing && existing.quantity >= product.stockQuantity) {
-        Toast.show({ type: 'error', text1: 'Vượt quá số lượng tồn kho', text2: product.productName });
-        return prev;
-      }
-
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-
-      // Hack to match existing CartItem type for now
-      return [...prev, { product: product as any, quantity: 1 }];
-    });
-
-    Toast.show({ type: 'success', text1: 'Đã thêm vào giỏ', text2: product.productName });
-  }, []);
-
+  // ── Render item (stable, không recreate mỗi render) ──
   const renderProductItem = useCallback(
-    ({ item }: { item: ApiProduct }) => {
+    ({ item }: { item: Product }) => {
       const isOutOfStock = item.stockQuantity <= 0;
       const lowStock = item.stockQuantity > 0 && item.stockQuantity <= 3;
 
       return (
-        <View className="mb-3 flex-1 rounded-xl border border-border bg-surface p-3" style={{ opacity: isOutOfStock ? 0.6 : 1 }}>
+        <View
+          className="mb-3 flex-1 rounded-xl border border-border bg-surface p-3"
+          style={{ opacity: isOutOfStock ? 0.6 : 1 }}>
+          {/* Product image / placeholder */}
           <View className="relative mb-3 h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-bg">
             {item.imageUrl ? (
               <Image source={{ uri: item.imageUrl }} className="h-full w-full" resizeMode="cover" />
             ) : (
               <Ionicons name="cube-outline" size={28} color={COLORS.textMuted} />
             )}
-
             <View
               className="absolute right-2 top-2 rounded px-1.5 py-0.5"
               style={{
-                backgroundColor: isOutOfStock ? 'rgba(100,116,139,0.9)' : lowStock ? 'rgba(239,68,68,0.9)' : 'rgba(34,197,94,0.9)',
+                backgroundColor: isOutOfStock
+                  ? 'rgba(100,116,139,0.9)'
+                  : lowStock
+                    ? 'rgba(239,68,68,0.9)'
+                    : 'rgba(34,197,94,0.9)',
               }}>
               <Text className="text-[10px] font-bold text-white">
                 {isOutOfStock ? 'Hết hàng' : `Còn ${item.stockQuantity}`}
@@ -163,23 +126,26 @@ export function POSScreen() {
               activeOpacity={0.8}
               disabled={isOutOfStock}
               style={{ opacity: isOutOfStock ? 0.5 : 1 }}
-              onPress={() => addToCart(item)}>
+              onPress={() => addItem(item)}>
               <Ionicons name="add" size={16} color="#0F172A" />
             </TouchableOpacity>
           </View>
         </View>
       );
     },
-    [addToCart]
+    [addItem],
   );
 
+  // ── Render ────────────────────────────────────
   return (
     <View className="flex-1 bg-bg">
       <ScreenHeader
         title="Quầy bán hàng"
         topInset={insets.top}
         rightSlot={
-          <TouchableOpacity className="h-9 w-9 items-center justify-center rounded-full" activeOpacity={0.7}>
+          <TouchableOpacity
+            className="h-9 w-9 items-center justify-center rounded-full"
+            activeOpacity={0.7}>
             <Ionicons name="notifications-outline" size={19} color={COLORS.textMuted} />
           </TouchableOpacity>
         }>
@@ -190,7 +156,11 @@ export function POSScreen() {
         />
       </ScreenHeader>
 
-      <HorizontalChips items={categoryItems} activeKey={selectedCategory} onPress={setSelectedCategory} />
+      <HorizontalChips
+        items={categoryChips}
+        activeKey={selectedCategory}
+        onPress={setSelectedCategory}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -219,6 +189,7 @@ export function POSScreen() {
         />
       )}
 
+      {/* Cart floating bar */}
       {cart.length > 0 && (
         <View className="absolute bottom-20 left-4 right-4 z-10 rounded-2xl border border-border bg-surface p-3 shadow-sm shadow-black/10">
           <View className="flex-row items-center justify-between">
@@ -231,19 +202,19 @@ export function POSScreen() {
               </View>
               <View>
                 <Text className="text-xs text-muted">Tổng tạm tính</Text>
-                <Text className="text-sm font-bold text-foreground">
-                  {formatCurrency(cartTotal)}
-                </Text>
+                <Text className="text-sm font-bold text-foreground">{formatCurrency(cartTotal)}</Text>
               </View>
             </View>
 
             <TouchableOpacity
               className="flex-row items-center rounded-xl bg-primary px-4 py-2.5"
               activeOpacity={0.85}
-              onPress={() => navigation.navigate('Checkout', {
-                cart: cart as any,
-                onComplete: () => setCart([])
-              })}>
+              onPress={() =>
+                navigation.navigate('Checkout', {
+                  cart,
+                  onComplete: clearCart,
+                })
+              }>
               <Text className="mr-1 text-sm font-bold text-slate-900">Thanh toán</Text>
               <Ionicons name="arrow-forward" size={16} color="#0F172A" />
             </TouchableOpacity>

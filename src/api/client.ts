@@ -8,7 +8,7 @@ import type { FeatureGateErrorType } from '@/src/types';
 //
 // Tính năng:
 //   1. Tự động gắn Bearer token vào mỗi request
-//   2. Xử lý 401 → xóa token (session hết hạn)
+//   2. Xử lý 401 → clear session + redirect Login
 //   3. Xử lý 403 → phân biệt Feature Gate errors
 //      (TrialExpired / SubscriptionExpired / FeatureNotAvailable)
 // =============================================
@@ -22,9 +22,28 @@ const FEATURE_GATE_ERRORS: FeatureGateErrorType[] = [
   'FeatureNotAvailable',
 ];
 
+// ──────────────────────────────────────────────
+// Session Expired Callback
+//
+// Dùng callback pattern để tránh circular dependency:
+//   client → stores → api → client (vòng tròn!)
+//
+// App.tsx đăng ký handler khi mount.
+// Khi 401 xảy ra → gọi handler → stores tự clear → UI về Login
+// ──────────────────────────────────────────────
+type SessionExpiredHandler = () => void;
+let sessionExpiredHandler: SessionExpiredHandler | null = null;
+
+export function registerSessionExpiredHandler(fn: SessionExpiredHandler) {
+  sessionExpiredHandler = fn;
+}
+
+// ──────────────────────────────────────────────
+// Axios Instance
+// ──────────────────────────────────────────────
 export const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -38,7 +57,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ──────────── RESPONSE INTERCEPTOR ────────────
@@ -49,10 +68,11 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const data = error.response?.data;
 
-    // 401 — Token hết hạn hoặc không hợp lệ → xóa token
+    // 401 — Token hết hạn hoặc không hợp lệ
+    // Xóa storage + trigger handler → UI tự navigate về Login
     if (status === 401) {
-      await AsyncStorage.removeItem('accessToken');
-      // TODO: navigate to Login screen
+      await AsyncStorage.multiRemove(['accessToken', 'user']);
+      sessionExpiredHandler?.();
     }
 
     // 403 — Kiểm tra có phải Feature Gate error không
@@ -64,13 +84,13 @@ apiClient.interceptors.response.use(
         useFeatureGateStore.getState().openUpgradeModal({
           errorType: errorCode,
           message: data.message,
-          currentPlan: data.currentPlan, // chỉ có khi FeatureNotAvailable
-          requiredPlan: data.requiredPlan, // chỉ có khi FeatureNotAvailable
-          feature: data.feature, // chỉ có khi FeatureNotAvailable
+          currentPlan: data.currentPlan,
+          requiredPlan: data.requiredPlan,
+          feature: data.feature,
         });
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );

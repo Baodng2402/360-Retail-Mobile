@@ -2,6 +2,8 @@
 // Navigation Types — Khai báo params cho từng Stack/Tab
 // =============================================
 
+import type { CartItem } from '@/src/types';
+
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
@@ -29,7 +31,7 @@ export type MainTabParamList = {
 // ──────────── POS Stack ────────────
 export type RentalsStackParamList = {
   POS: undefined;
-  Checkout: { cart?: any[]; onComplete?: () => void };
+  Checkout: { cart: CartItem[]; onComplete?: () => void };
 };
 
 // ──────────── Profile Stack ────────────
@@ -52,6 +54,11 @@ export type MoreStackParamList = {
   InventoryDetail: { ticketId: string };
   InventoryForm: { ticketId?: string };
   CustomerManagement: undefined;
+  EmployeeManagement: undefined;
+  Feedback: undefined;
+  TaskManagement: undefined;
+  Loyalty: undefined;
+  Payment: undefined;
   CrmDashboard: undefined;
   Reports: undefined;
   MyTasks: undefined;

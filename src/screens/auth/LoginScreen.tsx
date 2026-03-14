@@ -109,7 +109,6 @@ export function LoginScreen({ navigation }: Props) {
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Play Services không khả dụng' });
       } else {
-        console.error('Google Sign-In Error:', error);
         Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Đăng nhập Google thất bại' });
       }
     } finally {

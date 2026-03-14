@@ -9,7 +9,8 @@ export const storeApi = {
 
   // DS stores mà user sở hữu (Owner) — trả về array với full details
   // Response: [{ id, storeName, address, phone, isActive, createdAt, isDefault }]
-  getMyOwnedStores: () => apiClient.get<ApiResponse<any>>('/saas/stores/my-owned-stores'),
+  getMyOwnedStores: () =>
+    apiClient.get<ApiResponse<any>>('/saas/stores/my-owned-stores?includeInactive=true'),
 
   // DS tất cả stores user thuộc về (gồm Staff) — trả về array lightweight
   // Response: [{ storeId, roleInStore, isDefault }]

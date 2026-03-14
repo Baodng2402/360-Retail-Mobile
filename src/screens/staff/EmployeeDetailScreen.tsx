@@ -26,8 +26,7 @@ export function EmployeeDetailScreen({ navigation, route }: Props) {
 
     const fetchEmployee = useCallback(async () => {
         try {
-            const res = await hrApi.getEmployee(employeeId);
-            const data = res.data?.data;
+            const data = await hrApi.getEmployeeById(employeeId);
             if (data) {
                 setEmployee(data);
                 setFullName(data.fullName);

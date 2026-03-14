@@ -128,7 +128,7 @@ export function InventoryDetailScreen() {
     }
 
     const typeLabel = ticket.type === 'Import' ? 'Nhập kho' : 'Xuất kho';
-    const totalQty = ticket.items?.reduce((cnt, item) => cnt + item.quantity, 0) || 0;
+    const totalQty = ticket.items?.reduce((cnt, item) => cnt + Number(item.quantity || 0), 0) || 0;
 
     return (
         <View className="flex-1 bg-bg">

@@ -13,8 +13,12 @@ import { productsApi, categoriesApi } from '@/src/api';
 import { useStoreStore } from '@/src/stores/useStoreStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import type { MoreStackParamList } from '@/src/navigation/types';
+import { isManagerOrOwner } from '@/src/utils/role';
+import type { Product, Category } from '@/src/types';
 
 type ProductsScreenNavigationProp = StackNavigationProp<MoreStackParamList, 'ProductManagement'>;
+type ProductListItem = Product & { sku?: string };
+type CategoryListItem = Category & { name?: string };
 
 const STOCK_STYLE: Record<string, { label: string; bg: string; text: string }> = {
   in_stock: { label: 'CÒN HÀNG', bg: 'rgba(34,197,94,0.12)', text: '#16A34A' },
@@ -31,17 +35,16 @@ export function ProductsScreen() {
   const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
 
   const rawRole = useAuthStore((s) => s.user?.role);
-  const userRole = Array.isArray(rawRole) ? rawRole[0] ?? '' : rawRole ?? '';
-  const canViewInactive = userRole === 'StoreOwner' || userRole === 'Manager';
+  const canViewInactive = isManagerOrOwner(rawRole);
 
-  const listRef = useRef<FlatList<any>>(null);
+  const listRef = useRef<FlatList<ProductListItem | CategoryListItem>>(null);
 
   const fetchData = useCallback(async () => {
     if (!activeStore) return;
@@ -51,10 +54,10 @@ export function ProductsScreen() {
           storeId: activeStore.id,
           includeInactive: showInactive
         });
-        setProducts(fetchedProducts);
+        setProducts(fetchedProducts as ProductListItem[]);
       } else {
         const fetchedCategories = await categoriesApi.getCategories(activeStore.id, showInactive);
-        setCategories(fetchedCategories);
+        setCategories(fetchedCategories as CategoryListItem[]);
       }
     } catch (error) {
       console.error('Failed to load data', error);
@@ -77,26 +80,35 @@ export function ProductsScreen() {
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const filteredData = useMemo(() => {
-    if (activeTab === 'products') {
-      return products.filter((item) => {
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((item) => {
         if (!normalizedQuery) return true;
         return (
           (item.productName || '').toLowerCase().includes(normalizedQuery) ||
           (item.sku || '').toLowerCase().includes(normalizedQuery) ||
           (item.category?.categoryName || '').toLowerCase().includes(normalizedQuery)
         );
-      });
-    } else {
-      return categories.filter((item) => {
+      }),
+    [products, normalizedQuery],
+  );
+
+  const filteredCategories = useMemo(
+    () =>
+      categories.filter((item) => {
         if (!normalizedQuery) return true;
         return (
           (item.categoryName || '').toLowerCase().includes(normalizedQuery) ||
           (item.name || '').toLowerCase().includes(normalizedQuery)
         );
-      });
-    }
-  }, [products, categories, normalizedQuery, activeTab]);
+      }),
+    [categories, normalizedQuery],
+  );
+
+  const filteredData = useMemo<(ProductListItem | CategoryListItem)[]>(
+    () => (activeTab === 'products' ? filteredProducts : filteredCategories),
+    [activeTab, filteredProducts, filteredCategories],
+  );
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -112,7 +124,7 @@ export function ProductsScreen() {
     }
   };
 
-  const renderProductItem = ({ item }: { item: any }) => {
+  const renderProductItem = useCallback(({ item }: { item: ProductListItem }) => {
     let stockStatus = 'in_stock';
     if (item.stockQuantity <= 0) stockStatus = 'out_of_stock';
     else if (item.stockQuantity <= 3) stockStatus = 'low_stock';
@@ -163,9 +175,9 @@ export function ProductsScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [navigation]);
 
-  const renderCategoryItem = ({ item }: { item: any }) => (
+  const renderCategoryItem = useCallback(({ item }: { item: CategoryListItem }) => (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => navigation.navigate('CategoryForm', { categoryId: item.id })}
@@ -190,22 +202,52 @@ export function ProductsScreen() {
         <Ionicons name="pencil" size={16} color={COLORS.textMuted} />
       </TouchableOpacity>
     </TouchableOpacity>
+  ), [navigation]);
+
+  const keyExtractor = useCallback((item: ProductListItem | CategoryListItem) => item.id, []);
+
+  const renderListItem = useMemo(
+    () => (activeTab === 'products' ? renderProductItem : renderCategoryItem),
+    [activeTab, renderProductItem, renderCategoryItem],
   );
 
   return (
     <View className="flex-1 bg-bg">
       <ScreenHeader
-        title="Quản lý"
+        title="Sản phẩm & Danh mục"
+        subtitle={
+          activeTab === 'products'
+            ? `${filteredData.length} sản phẩm`
+            : `${filteredData.length} danh mục`
+        }
         topInset={insets.top}
         showBackButton
         rightSlot={
           <TouchableOpacity
-            className="h-10 w-10 items-center justify-center rounded-full bg-primary"
+            className="h-10 w-10 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30"
             activeOpacity={0.8}
             onPress={handleAdd}>
-            <Ionicons name="add" size={20} color="#0F172A" />
+            <Ionicons name="add" size={24} color="#0F172A" />
           </TouchableOpacity>
         }>
+        {activeTab === 'products' && (
+          <View
+            className="flex-row items-center rounded-xl p-3 mb-4 border"
+            style={{
+              backgroundColor: COLORS.primaryLight,
+              borderColor: 'rgba(25, 214, 200, 0.2)'
+            }}>
+            <View className="bg-primary/20 p-1.5 rounded-full mr-3">
+              <Ionicons name="information-circle" size={18} color={COLORS.primaryDark} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[13px] font-bold text-foreground mb-0.5">Mẹo nhỏ</Text>
+              <Text className="text-[12px] text-foreground opacity-70 leading-4">
+                Nếu chưa có Danh Mục, vui lòng tạo trước để quản lý sản phẩm tốt hơn!
+              </Text>
+            </View>
+          </View>
+        )}
         <SearchField
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -247,8 +289,12 @@ export function ProductsScreen() {
         <FlatList
           ref={listRef}
           data={filteredData}
-          keyExtractor={(item) => item.id}
+          keyExtractor={keyExtractor}
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
           ListEmptyComponent={
             <View className="items-center pt-16">
@@ -258,7 +304,7 @@ export function ProductsScreen() {
               </Text>
             </View>
           }
-          renderItem={activeTab === 'products' ? renderProductItem : renderCategoryItem}
+          renderItem={renderListItem as any}
         />
       )}
     </View>

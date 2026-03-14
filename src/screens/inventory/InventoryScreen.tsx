@@ -70,7 +70,7 @@ export function InventoryScreen() {
     const renderTicket = ({ item }: { item: InventoryTicket }) => {
         const statusCfg = STATUS_COLOR[item.status] || STATUS_COLOR.Draft;
         const typeCfg = TYPE_COLOR[item.type] || TYPE_COLOR.Import;
-        const itemsCount = item.items?.reduce((cnt, i) => cnt + i.quantity, 0) || 0;
+        const itemsCount = item.items?.reduce((cnt, i) => cnt + Number(i.quantity || 0), 0) || 0;
 
         return (
             <TouchableOpacity

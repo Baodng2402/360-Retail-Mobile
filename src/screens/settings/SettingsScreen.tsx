@@ -8,12 +8,14 @@ import { useAuthStore } from '@/src/stores';
 import { authApi } from '@/src/api';
 import { COLORS } from '@/src/constants/colors';
 import type { MoreStackParamList } from '@/src/navigation/types';
+import { isStoreOwner } from '@/src/utils/role';
+import { ChangePasswordSchema } from '@/src/utils/validators';
 
 // =============================================
 // SettingsScreen — Cài đặt
 //
-// Staff: chỉ thấy tab Bảo mật (đổi mật khẩu)
-// Owner/Manager: + Thông tin CH, Thông báo
+// Staff/Manager: chỉ thấy tab Bảo mật (đổi mật khẩu)
+// Owner: + Thông tin CH, Thông báo
 // =============================================
 
 type Props = StackScreenProps<MoreStackParamList, 'Settings'>;
@@ -22,8 +24,8 @@ type TabKey = 'security' | 'store' | 'notifications';
 
 export function SettingsScreen({ navigation }: Props) {
     const insets = useSafeAreaInsets();
-    const userRole = useAuthStore((s) => s.user?.role ?? '');
-    const isManager = userRole === 'StoreOwner' || userRole === 'Manager';
+    const rawRole = useAuthStore((s) => s.user?.role ?? '');
+    const isOwnerRole = isStoreOwner(rawRole);
 
     const [activeTab, setActiveTab] = useState<TabKey>('security');
 
@@ -35,24 +37,24 @@ export function SettingsScreen({ navigation }: Props) {
 
     const tabs: { key: TabKey; label: string; icon: string; show: boolean }[] = [
         { key: 'security', label: 'Bảo mật', icon: 'shield-checkmark-outline', show: true },
-        { key: 'store', label: 'Cửa hàng', icon: 'storefront-outline', show: isManager },
-        { key: 'notifications', label: 'Thông báo', icon: 'notifications-outline', show: isManager },
+        { key: 'store', label: 'Cửa hàng', icon: 'storefront-outline', show: isOwnerRole },
+        { key: 'notifications', label: 'Thông báo', icon: 'notifications-outline', show: isOwnerRole },
     ];
 
     const visibleTabs = tabs.filter((t) => t.show);
 
     // ──────────── Đổi mật khẩu ────────────
     const handleChangePassword = async () => {
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng điền đầy đủ thông tin' });
-            return;
-        }
-        if (newPassword.length < 8) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu mới phải có ít nhất 8 ký tự' });
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Xác nhận mật khẩu không khớp' });
+        const validationResult = ChangePasswordSchema.safeParse({
+            currentPassword,
+            newPassword,
+            confirmNewPassword: confirmPassword,
+        });
+
+        if (!validationResult.success) {
+            // Lấy lỗi đầu tiên từ Zod để hiển thị
+            const firstError = validationResult.error.issues[0];
+            Toast.show({ type: 'error', text1: 'Lỗi nhập liệu', text2: firstError?.message || 'Dữ liệu không hợp lệ' });
             return;
         }
 

@@ -30,7 +30,8 @@ export function CategoryFormScreen() {
             if (!activeStore) return;
             try {
                 if (isEdit) {
-                    const cats = await categoriesApi.getCategories(activeStore.id);
+                    // Cần lấy cả danh mục bị ẩn (includeInactive = true) để đắp data vào form
+                    const cats = await categoriesApi.getCategories(activeStore.id, true);
                     const cat = cats.find((c: any) => c.id === categoryId);
                     if (cat) {
                         setCategoryName(cat.categoryName || '');

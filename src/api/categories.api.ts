@@ -1,59 +1,76 @@
 import { apiClient } from './client';
 import type { ApiResponse, Category } from '@/src/types';
+import { extractList, extractSingle } from './utils/normalizeResponse';
+
+type CategoryInput = string | Partial<Category>;
+
+function resolveCategoryPayload(nameOrData: CategoryInput, description?: string) {
+  if (typeof nameOrData === 'string') {
+    return {
+      categoryName: nameOrData,
+      description,
+    };
+  }
+
+  return {
+    categoryName: nameOrData.categoryName,
+    parentId: nameOrData.parentId,
+    isActive: nameOrData.isActive,
+    description,
+  };
+}
 
 export const categoriesApi = {
   async getCategories(storeId?: string, includeInactive?: boolean): Promise<Category[]> {
-    const queryParams = new URLSearchParams();
-    if (storeId) queryParams.append('storeId', storeId);
-    if (includeInactive !== undefined) {
-      queryParams.append('includeInactive', includeInactive.toString());
+    try {
+      const queryParams = new URLSearchParams();
+      if (storeId) queryParams.append('storeId', storeId);
+      if (includeInactive !== undefined) {
+        queryParams.append('includeInactive', includeInactive.toString());
+      }
+
+      const url = `sales/Categories${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+      const res = await apiClient.get<ApiResponse<Category[]> | Category[]>(url);
+      return extractList<Category>(res);
+    } catch (error) {
+      console.error('[categoriesApi.getCategories] Failed to fetch categories:', error);
+      throw error;
     }
-
-    const url = `sales/Categories${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
-    const res = await apiClient.get<ApiResponse<Category[]> | Category[]>(url);
-
-    if (res.data && 'success' in res.data && res.data.success && Array.isArray(res.data.data)) {
-      return res.data.data;
-    }
-    if (Array.isArray(res.data)) {
-      return res.data;
-    }
-
-    // Fallback if data is inside res.data.data but no success payload
-    const rawData = res.data?.data as any;
-    if (Array.isArray(rawData)) return rawData;
-
-    return [];
   },
 
-  async createCategory(data: Partial<Category>): Promise<Category> {
-    const res = await apiClient.post<ApiResponse<Category> | Category>('sales/Categories', {
-      categoryName: data.categoryName,
-      parentId: data.parentId,
-    });
-
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      return res.data.data;
+  async createCategory(nameOrData: CategoryInput, description?: string): Promise<Category> {
+    try {
+      const payload = resolveCategoryPayload(nameOrData, description);
+      const res = await apiClient.post<ApiResponse<Category> | Category>('sales/Categories', payload);
+      return extractSingle<Category>(res);
+    } catch (error) {
+      console.error('[categoriesApi.createCategory] Failed to create category:', error);
+      throw error;
     }
-    return res.data as Category;
   },
 
-  async updateCategory(id: string, data: Partial<Category>): Promise<Category> {
-    const res = await apiClient.put<ApiResponse<Category> | Category>(`sales/Categories/${id}`, {
-      id,
-      categoryName: data.categoryName,
-      parentId: data.parentId,
-      isActive: data.isActive,
-    });
+  async updateCategory(id: string, nameOrData: CategoryInput, description?: string): Promise<Category> {
+    try {
+      const payload = {
+        id,
+        ...resolveCategoryPayload(nameOrData, description),
+      };
 
-    if (res.data && 'success' in res.data && res.data.success && res.data.data) {
-      return res.data.data;
+      const res = await apiClient.put<ApiResponse<Category> | Category>(`sales/Categories/${id}`, payload);
+      return extractSingle<Category>(res);
+    } catch (error) {
+      console.error(`[categoriesApi.updateCategory] Failed for id=${id}:`, error);
+      throw error;
     }
-    return res.data as Category;
   },
 
   async deleteCategory(id: string): Promise<void> {
-    await apiClient.delete(`sales/Categories/${id}`);
+    try {
+      await apiClient.delete(`sales/Categories/${id}`);
+    } catch (error) {
+      console.error(`[categoriesApi.deleteCategory] Failed for id=${id}:`, error);
+      throw error;
+    }
   },
 };

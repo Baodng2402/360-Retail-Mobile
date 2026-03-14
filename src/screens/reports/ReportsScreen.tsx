@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { crmApi } from '@/src/api';
+import { ScreenHeader } from '@/src/components';
 import { COLORS } from '@/src/constants/colors';
 import type { FeedbackSummary } from '@/src/types';
 import type { MoreStackParamList } from '@/src/navigation/types';
@@ -50,14 +51,12 @@ export function ReportsScreen({ navigation }: Props) {
 
     return (
         <View className="flex-1 bg-bg">
-            <View className="border-b border-divider bg-surface px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
-                <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3" activeOpacity={0.7}>
-                        <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-                    </TouchableOpacity>
-                    <Text className="text-xl font-bold text-foreground">Báo cáo</Text>
-                </View>
-            </View>
+            <ScreenHeader
+                title="Báo cáo tổng quan"
+                subtitle={`${summary?.totalCount ?? 0} phản hồi`}
+                topInset={insets.top}
+                showBackButton
+            />
 
             <ScrollView
                 className="flex-1"

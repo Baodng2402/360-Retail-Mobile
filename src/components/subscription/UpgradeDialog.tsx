@@ -78,12 +78,6 @@ export function UpgradeDialog({ onUpgrade }: UpgradeDialogProps) {
                                 Gói hiện tại:{' '}
                                 <Text className="font-semibold text-foreground">{currentPlan}</Text>
                             </Text>
-                            {feature && (
-                                <Text className="mt-1 text-sm text-muted">
-                                    Tính năng:{' '}
-                                    <Text className="font-semibold text-foreground">{feature}</Text>
-                                </Text>
-                            )}
                             {requiredPlan && (
                                 <Text className="mt-1 text-sm text-muted">
                                     Yêu cầu gói:{' '}

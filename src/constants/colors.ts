@@ -37,3 +37,24 @@ export const COLORS = {
   // Misc
   overlay: 'rgba(0,0,0,0.5)',
 } as const;
+
+export const COLORS_DARK = {
+  ...COLORS,
+  bg: '#0B1220',
+  surface: '#111A2B',
+  card: '#111A2B',
+  text: '#E2E8F0',
+  textSecondary: '#CBD5E1',
+  textMuted: '#94A3B8',
+  border: '#243049',
+  divider: '#1A253A',
+  primaryLight: '#17363A',
+  successLight: '#1B3322',
+  warningLight: '#3C2F1A',
+  errorLight: '#3E1F25',
+  infoLight: '#1D2F44',
+} as const;
+
+export function resolveColors(isDarkMode: boolean) {
+  return isDarkMode ? COLORS_DARK : COLORS;
+}

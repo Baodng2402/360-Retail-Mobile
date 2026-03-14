@@ -18,6 +18,12 @@ interface AuthState {
   login: (token: string, user: UserProfile) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  /**
+   * clearSession — Dùng khi token bị 401 (server reject)
+   * Không gọi API logout (token đã invalid), chỉ xóa local state.
+   * Gọi bởi sessionExpiredHandler trong App.tsx.
+   */
+  clearSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -57,6 +63,21 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   // Đăng xuất — xóa hết (auth + subscription + stores)
   logout: async () => {
+    try {
+      // Gọi API backend blacklist Token (nếu token còn valid)
+      const { authApi } = await import('@/src/api');
+      await authApi.logout();
+    } catch (e) {
+      console.log('Backend logout failed or token already invalid', e);
+    }
+
+    await AsyncStorage.multiRemove(['accessToken', 'user']);
+    useSubscriptionStore.getState().clear();
+    set({ token: null, user: null, isAuthenticated: false });
+  },
+
+  // Clear session khi token bị 401 — không gọi API
+  clearSession: async () => {
     await AsyncStorage.multiRemove(['accessToken', 'user']);
     useSubscriptionStore.getState().clear();
     set({ token: null, user: null, isAuthenticated: false });
